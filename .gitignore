@@ -1,0 +1,14 @@
+# Upstream firmware clone (NOT ours — clone separately on the Pi, see docs/firmware/firmware.md)
+linorobot2_hardware/
+
+# Claude Code local files
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+
+# Maps / recordings (generated)
+*.pgm
+*.bag/
+maps/
