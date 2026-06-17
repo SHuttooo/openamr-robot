@@ -12,6 +12,23 @@ Magnetic incremental encoders, one per wheel, that let the Teensy measure each w
 | Resolution | **1024 counts/rev** (`COUNTS_PER_REV` in firmware) |
 | Logic level | 3.3 V |
 
+## What is a "quadrature" encoder? (quick primer)
+An encoder measures wheel rotation. This one outputs **two square-wave signals, A and B, shifted 90°
+apart** — that 90° shift is the "quadrature". As the wheel turns:
+```
+forward:               reverse:
+A ┌─┐ ┌─┐ ┌─┐          A ┌─┐ ┌─┐ ┌─┐
+  ┘ └─┘ └─┘ └            ┘ └─┘ └─┘ └
+B   ┌─┐ ┌─┐ ┌─┐       B ┌─┐ ┌─┐ ┌─┐
+  ──┘ └─┘ └─┘            ┘ └─┘ └─┘ └
+   (A leads B)            (B leads A)
+```
+- **Count the edges** of A and B → **position** (more rotation = more counts).
+- **Which signal leads** (A-before-B vs B-before-A) → **direction**.
+- It is **incremental** (relative counts, not an absolute angle).
+- 1024 counts/rev, and counting all edges of both channels gives **×4** resolution.
+- "Magnetic" (AS5040): a magnet on the shaft + a sensor chip that generates the A/B pulses.
+
 ## Communication (quadrature → Teensy)
 Two digital signals **A** and **B** in quadrature, read by the Teensy on **interrupt** pins. The phase
 relationship between A and B gives direction; counting edges gives position.

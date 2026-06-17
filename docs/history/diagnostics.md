@@ -70,9 +70,26 @@ Setting up PlatformIO on a PEP 668 ("externally managed") Ubuntu was non-trivial
 
 ---
 
-## 4. Other notes
-- **LiDAR**: killing the driver brutally mid-scan leaves it stuck (`80008000`/timeout) → unplug/replug.
-- **IMU not fused yet**: `/odom` is wheel-only; the (now working) IMU should be fused via an EKF later for
-  less heading drift.
+## 4. LiDAR issues
+- **Stuck if killed mid-scan**: a hard SIGTERM leaves it `Cannot start scan: 80008000` / `operation
+  timeout`. Recover by **restarting the node** (clean re-init); if that fails, **unplug/replug the USB**.
+  Don't loop-respawn a stuck device.
+- **Stops publishing on its own**: sometimes the node is alive but `/scan` goes silent. A single node
+  restart brings it back. Cause not pinned (USB power / motor?). To watch — especially during SLAM.
+- **Mounted rotated 180°**: found empirically (object in front shows at ±180° in the LiDAR frame). The TF
+  `base_link→lidar_link` uses **yaw=180°**, x=0.335, z=0.18. The robot's own frame also produces close
+  returns (≈ ±20–50°, ±80–90°) → handled with `min_laser_range`/scan filter.
+
+## 5. Smaller gotchas
+- **Debug topics QoS**: `/debug/*` are published **best-effort** → a subscriber must request best-effort
+  too, else "incompatible QoS, no messages".
+- **micro-ROS entities**: adding publishers/subscribers (we have 6 pub + 2 sub) stays under the default
+  micro-ROS limit — if exceeded, the Teensy won't connect (no topics) and the LED blinks.
+
+## 6. Still open / next
+- **IMU not fused yet**: `/odom` is wheel-only; fuse the (now working) IMU via a `robot_localization` EKF
+  later for less heading drift.
 - **Geometry**: real robot Ø0.2 / separation 0.45 (the sim uses 0.22 / 0.4075) — calibrate odometry on the
-  real robot.
+  real robot; adjust the URDF if running `robot_state_publisher`.
+- **Startup veer**: a small heading drift at the very start of motion (stiction + PID from zero); minor,
+  Nav2 corrects it; a feedforward / min-PWM could reduce it.
