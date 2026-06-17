@@ -6,10 +6,18 @@
 | Element | Supply |
 |---|---|
 | Motors / drivers | **24 V DC** (`DC+ / DC−` on each driver, with a fuse) |
-| 24 V source | an **AC/DC converter** from **230 V AC** mains |
+| 24 V source | **battery pack** (lead-acid, see below) — or an **AC/DC converter** (230 V mains) for bench tests |
 | Teensy | powered over **USB** from the Pi (5 V → 3.3 V on board) |
 | Raspberry Pi | its own supply (USB-C, 5 V) |
 | LiDAR | powered over its USB (CP2102 adapter) from the Pi |
+
+## Battery pack
+- **4 × 12 V lead-acid** batteries (the big black ones).
+- Wired **2 in series → 24 V** (one "pair"). With 2 pairs you can make **24 V** (pairs in parallel, more
+  capacity) **or 48 V** (pairs in series) — this matches the OpenAMR platform's "24/48 V" spec.
+- **In practice we usually run a single pair = 24 V.**
+- ⚠️ Lead-acid basics: respect polarity, don't short the terminals (very high current), charge with a
+  suitable lead-acid charger, and don't fully deep-discharge them (shortens life).
 
 The Teensy sends only **low-current logic signals** to the drivers; the **24 V power** goes through the
 drivers to the motor phases. Logic ground (Teensy GND) and driver `COM` must be **common**.
@@ -37,5 +45,6 @@ The 24 V side is low-risk, but the **AC/DC converter is fed by 230 V AC, which i
 - Hardware backstop: keep a hand on the **24 V cut-off** during powered tests. Wheels off the ground.
 
 ## TODO / to document
-- Battery vs wall supply, exact converter model, fuse rating, and whether a physical **E-stop** exists
-  (a ROS-independent emergency stop is recommended).
+- Exact battery capacity (Ah) & charger, AC/DC converter model, fuse rating, and whether a physical
+  **E-stop** exists (a ROS-independent emergency stop is recommended).
+- A **battery voltage monitor** would be useful (lead-acid sags under load; low voltage → erratic motors).
