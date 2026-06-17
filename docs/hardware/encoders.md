@@ -29,6 +29,24 @@ B   ┌─┐ ┌─┐ ┌─┐       B ┌─┐ ┌─┐ ┌─┐
 - 1024 counts/rev, and counting all edges of both channels gives **×4** resolution.
 - "Magnetic" (AS5040): a magnet on the shaft + a sensor chip that generates the A/B pulses.
 
+### "Hall" vs "quadrature" — not a contradiction
+- **Quadrature** = the *output signal type* (A/B, 90° apart).
+- **Hall-effect** = the *sensing technology* (reading a magnetic field).
+The AS5040 **senses magnetically (Hall-array)** and **outputs quadrature** — both terms apply.
+
+⚠️ **Two different "Hall" on this robot, don't confuse them:**
+1. **Wheel encoder (AS5040)**: Hall-based magnetic sensing → **quadrature A/B output** → read by the
+   **Teensy** for odometry/PID. **1024 counts/rev.**
+2. **BLDC motor commutation Hall sensors** (3 per motor) → read by the **ZBLD driver** to commutate the
+   motor phases (this is what "driver closed loop" refers to). The Teensy never sees these.
+
+What tells them apart: **1024 counts/rev**. Commutation Hall sensors are very coarse (a few transitions
+per rev) — they could never give 1024. That resolution means a real incremental encoder (AS5040). And it
+is functionally confirmed: the firmware decodes clean A/B quadrature and the counts increment correctly.
+
+> Note: the exact chip (AS5040) comes from the project brief; not physically re-verified on the board.
+> The *behaviour* (A/B quadrature, 1024 CPR) is verified.
+
 ## Communication (quadrature → Teensy)
 Two digital signals **A** and **B** in quadrature, read by the Teensy on **interrupt** pins. The phase
 relationship between A and B gives direction; counting edges gives position.
