@@ -2,12 +2,21 @@
 
 *Last updated: 2026-06-18.*
 
-> ⚠️ **Gains are RECONSTRUCTED, not the author's.** Observed 2026-06-18: the wheels **don't precisely
-> reach the commanded `/cmd_vel`** (steady-state tracking error). Two candidate causes — don't assume it's
-> only the PID: (1) non-optimal reconstructed gains; (2) **battery voltage sag** (on batteries, < 24 V →
-> lower max wheel speed → the wheels plateau below high commands). **Plan: a step-response test** on
-> `/debug/left|right` (target vs measured rpm) to judge rise time / overshoot / steady-state error, and
-> **compare with the real firmware source** (the author's tuning, expected ~2026-06-19) before re-tuning.
+> ✅ **PID re-tuned 2026-06-18 (step-response method).** The wheels used to not reach the commanded speed
+> (~-26% steady-state error, ~2.9 s rise). Root cause: **K_I far too low (0.15)**. New gains
+> **K_P 0.6 / K_I 0.35 / K_D 0.15** → steady-state error ~±2 %, rise ~1 s (≈2.4× faster). Method: command a
+> `/cmd_vel` step (0.25 m/s ≈ 24 rpm) and record `/debug/left|right` (target rpm x, measured rpm y) at
+> 50 Hz; judge rise time / overshoot / steady-state error. Test at ≥0.25 m/s (at 0.15 m/s the rpm
+> measurement is quantized by ~2.9 rpm ≈ 20 %, too coarse to tune).
+>
+> ⚠️ **Two gotchas found while tuning:**
+> 1. **`pio run -e teensy40` uses `config/lino_base_config.h`, NOT `custom/dev_config.h`** — the
+>    `USE_DEV_CONFIG` flag is only on the `[env:dev]` env. Edit `lino_base_config.h` (the real config).
+> 2. **The PID isn't the only loop** — the ZBLD drivers regulate internally (VAR gain + ACC/DEC ramp).
+>    Open-loop (fixed PWM via `/debug/openloop`) the wheel breaks free after ~0.4 s of stiction then holds
+>    speed quickly. The residual **right-wheel overshoot/ringing** is its different driver/motor dynamics.
+> - Remaining: stiction dead-time (~0.4 s) → would need **feedforward** in firmware for a straight start;
+>   right-wheel ringing → balance the right driver pots (VAR/ACC-DEC) or filter the rpm measurement.
 
 ## The 50 Hz loop (`firmware.ino`)
 A ROS timer fires every **20 ms** → `controlCallback` → `moveBase()` then `publishData()`.
@@ -43,7 +52,7 @@ odometry.update() ─► /odom/unfiltered     (pose integrated here)
 
 ## PID (`lib/pid/pid.cpp`)
 - One PID per wheel: `pid = Kp·e + Ki·∫e + Kd·Δe`, output clamped to `[PWM_MIN, PWM_MAX]`.
-- Gains: `K_P=0.3, K_I=0.15, K_D=0.25`.
+- Gains (tuned 2026-06-18): `K_P=0.6, K_I=0.35, K_D=0.15` (was 0.3 / 0.15 / 0.25 — K_I was too low).
 - ⚠️ The **upstream PID had no anti-windup** (the integral was unbounded). We **added integral clamping**
   so `Ki·integral` cannot exceed the output range — this prevents the integral "catapult" that amplified
   the right-wheel instability. We also lowered `K_I` (0.4 → 0.15) to damp the loop.

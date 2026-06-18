@@ -7,6 +7,18 @@ metadata:
   originSessionId: 6da325ad-d900-4dba-9896-6d398a31000d
 ---
 
+## PID RE-TUNÉ 2026-06-18 (step-response) — K_I était trop bas
+Nouveaux gains flashés : **K_P 0.6 / K_I 0.35 / K_D 0.15** (avant 0.3/0.15/0.25). Résultat : erreur
+statique **-26% → ±2%** (atteint la consigne), montée **2,9 s → ~1 s**. La cause = **K_I=0.15 trop bas**.
+Overshoot droite reste marqué (dynamique driver droit). Méthode : échelon /cmd_vel 0.25 m/s + record
+/debug/left|right (50 Hz). Tester à ≥0.25 m/s (à 0.15 la mesure rpm est quantifiée ~2.9 rpm ≈ 20%).
+
+⚠️ **GROS gotcha** : `pio run -e teensy40` utilise **`config/lino_base_config.h`**, PAS
+`custom/dev_config.h` (le flag USE_DEV_CONFIG n'est que sur l'env `[env:dev]`). → éditer
+**lino_base_config.h**. Aussi : les drivers ZBLD régulent en interne (VAR + rampe ACC/DEC) ; le stiction
+(~0.4 s de temps mort) demanderait un **feedforward** firmware pour un départ droit. Repo overlay
+firmware mis à jour. (Pas besoin d'attendre la "vraie source auteur" — on a tuné nous-mêmes.)
+
 ## CONCLUSION (test step-response 2026-06-18) : roue GAUCHE en panne MATÉRIELLE — PID hors de cause
 Test échelon 0,15 m/s sur le sol, capture `/debug/pwm` + `/debug/left|right` :
 - **GAUCHE : PWM monte jusqu'à ~316 (saturé) mais rpm mesuré = 0** tout du long → le firmware commande

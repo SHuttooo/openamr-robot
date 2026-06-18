@@ -41,9 +41,9 @@
 // #define USE_QMC5883L_MAG
 // #define MAG_BIAS { 0, 0, 0 }
 
-#define K_P 0.3                             // P constant
-#define K_I 0.15                            // I constant (baisse 0.4->0.15 pour amortir le cycle limite droit)
-#define K_D 0.25                            // D constant
+#define K_P 0.6                             // P (tune 2026-06-18 : 0.3->0.6)
+#define K_I 0.35                            // I (tune 2026-06-18 : 0.15->0.35, supprime l erreur statique)
+#define K_D 0.15                            // D (tune 2026-06-18 : 0.25->0.15)
 
 /*
 ROBOT ORIENTATION
