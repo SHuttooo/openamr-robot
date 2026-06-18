@@ -6,6 +6,7 @@
 ekf_filter_node:
   ros__parameters:
     frequency: 30.0
+    transform_time_offset: 0.2   # date le TF +0.2s : le scan lidar est ~0.14s en avance sur le TF (latence micro-ROS) -> evite "extrapolation into the future" cote SLAM
     sensor_timeout: 0.2
     two_d_mode: true              # robot planaire : ignore z, roll, pitch
     publish_tf: true
