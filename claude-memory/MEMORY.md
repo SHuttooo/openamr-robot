@@ -12,3 +12,6 @@
 - [PID / roue gauche](amr-pid-tracking-observation.md) — roue gauche intermittente = faux contact 24V (pas le PID) ; droite plus faible ; tuning à attendre (vraie source firmware)
 - [Session 2026-06-18](amr-session-2026-06-18.md) — EKF IMU, filtre scan, SLAM+carte coin1, caméra IMX708 (fork RPi libcamera), roue gauche faux-contact, doc MAJ
 - [Docking/Nav2 réel](amr-docking-nav2-real.md) — openamr-platform-sw buildé sur le Pi ; plan portage docking réel (CycloneDDS, calib caméra, dock AprilTag physique, gotcha isolation domaine sim)
+- [Roue gauche faux-contact](amr-left-wheel-faux-contact.md) — BLOQUEUR n°1 : chaîne gauche intermittente (câble), à réparer (souder)
+- [Réglage drivers (pots/DIP)](amr-driver-balance-dip.md) — équilibrage VAR droit (tangage), piste DIP SW1 boucle ouverte, quantif rpm
+- [Suite session Nav2/Cyclone](amr-session-suite-nav2-cyclone.md) — CycloneDDS, openamr-platform-sw buildé, docking, contrôle OK ; reste câble gauche
