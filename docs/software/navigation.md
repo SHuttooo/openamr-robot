@@ -4,10 +4,10 @@
 
 > **Status: SLAM works.** `slam_toolbox` (online_async) runs on `/scan_filtered` and builds/saves maps
 > (first map `~/maps/coin1.{pgm,yaml}` + serialized `coin1.{posegraph,data}`). Odometry is now EKF-fused.
-> Remaining for full autonomy: AMCL localization + the Nav2 stack (`openamr-platform-sw`, not yet built).
+> Remaining for full autonomy: AMCL localization + Nav2 (`openamr-platform-sw` now built on the Pi).
 
 ## The package: `openamr-platform-sw`
-Cloned at `~/openamr-platform-sw` (not built yet). ROS 2 packages (`ros2/src/`):
+Cloned at `~/openamr-platform-sw`, **built on the Pi** (2026-06-18). ROS 2 packages (`ros2/src/`): ROS 2 packages (`ros2/src/`):
 
 | Package | Role |
 |---|---|
@@ -37,7 +37,7 @@ provides, then the **same** Nav2 runs with `use_sim_time:=false`.
 | camera `/camera/image_raw` (+ TF) | ✅ **done** (IMX708 via RPi libcamera fork; uncalibrated) |
 | robot_state_publisher + URDF (full TF, joint_states) | ⏳ |
 | AMCL localization (re-use saved map) | ⏳ |
-| Nav2 stack (`openamr-platform-sw`, build + params) | ⏳ |
+| Nav2 stack (`openamr-platform-sw`) | ✅ built on Pi (config/launch TODO) |
 | camera **calibration** (for AprilTag/docking) | ⏳ |
 
 ## SLAM — how we run it (working)
@@ -96,8 +96,8 @@ tag); `dock_trigger.py` waits on `/dock_trigger` → `NavigateToPose` to a stagi
 1. **Camera calibration** (checkerboard) → real intrinsics + `image_proc` rectification (AprilTag needs it).
 2. **A physical AprilTag dock** — print 3× 36h11 tags (IDs 0/1/2), measure size, config.
 3. **Nav2 + AMCL on a real SLAM map** (the foundation — docking is NavigateToPose + approach).
-4. **CycloneDDS across the WHOLE stack** — `dock_trigger.py` crashes on Fast DDS for Nav2 action goals.
-   Our bring-up currently runs Fast DDS → switching is disruptive (agent, lidar, filter, EKF, camera + dev PC).
+4. ✅ **CycloneDDS across the WHOLE stack** — DONE 2026-06-18 (`dock_trigger.py` crashes on Fast DDS for
+   Nav2 action goals). Bring-up + dev PC now run Cyclone (Pi `~/.bashrc` exports it).
 5. **robot_state_publisher + URDF** (openamrobot_description, geometry Ø0.2/0.45) for the Nav2 footprint.
 6. **Topic remaps**: our camera is `/camera/image_raw`; docking expects `/rgb_image` + synced `camera_info`.
    Our `/scan_filtered` (scan_body_filter.py) can replace the package's `laser_filters` chain.

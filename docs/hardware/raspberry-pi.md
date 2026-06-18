@@ -23,7 +23,7 @@ sensor drivers (LiDAR, camera), odometry, and later the navigation (Nav2/SLAM).
   The Pi hosts the **micro-ROS agent** that exposes the Teensy's topics. See [01-communication.md](../01-communication.md).
 - **To the LiDAR**: USB → `/dev/ttyUSB0` (CP2102 UART bridge).
 - **To the camera**: **CSI** (ribbon cable), not USB.
-- **ROS internal**: DDS (Fast DDS by default; OpenAMR will want CycloneDDS).
+- **ROS internal**: DDS = **CycloneDDS** (rmw_cyclonedds_cpp, adopted 2026-06-18 for Nav2/docking).
 
 ## Important directories (`/home/botshare`)
 | Directory | Contents |

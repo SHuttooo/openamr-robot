@@ -69,7 +69,7 @@ Full details & caveats: [../software/navigation.md](../software/navigation.md).
 export ROS_DOMAIN_ID=0 && source /opt/ros/jazzy/setup.bash
 rviz2 -d scripts/openamr_slam.rviz
 ```
-Requires the same domain (0), Fast DDS, and the **same LAN subnet** as the Pi.
+Requires the same domain (0), CycloneDDS, and the **same LAN subnet** as the Pi.
 See [../software/visualization.md](../software/visualization.md).
 
 ## 4. Rebuild & flash the firmware (only if you changed it)

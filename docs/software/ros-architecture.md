@@ -62,11 +62,9 @@ wheels slip). This **replaced** the old `odom_tf_relay`. The EKF needs `base_foo
 TF (hence the identity static TFs).
 
 ## Middleware (RMW / DDS) & remote visualization — ACTUAL setup
-- **RMW = Fast DDS** (ROS 2 default), **`ROS_DOMAIN_ID = 0`** (the Pi has neither set → both defaults).
-- To see the Pi's topics from the **Ubuntu dev PC** (RViz/rqt natively): same **domain 0**, same **Fast
-  DDS**, and **same LAN subnet** (Fast DDS discovery is multicast → it must NOT cross a router). On Ubuntu:
+- **RMW = CycloneDDS** (`rmw_cyclonedds_cpp`) since 2026-06-18 (switched from Fast DDS for the docking / Nav2 actions; the Pi's `~/.bashrc` exports it). **`ROS_DOMAIN_ID = 0`**.
+- To see the Pi's topics from the **Ubuntu dev PC** (RViz/rqt natively): same **domain 0**, same **CycloneDDS**, and **same LAN subnet** (DDS discovery is multicast → it must NOT cross a router). On Ubuntu:
   `export ROS_DOMAIN_ID=0` (the desktop defaults to 42 here — override it).
-- ⚠️ OpenAMR's guide suggests CycloneDDS + domain 30; we are **not** using that. If we ever switch RMW,
-  **every** node (agent, drivers, Nav2, the dev PC) must use the same RMW.
+- OpenAMR recommends CycloneDDS — **now adopted**. **Every** node (agent, drivers, Nav2, the dev PC) must use the same RMW (Cyclone) + same domain.
 
 See [visualization.md](visualization.md) for the full RViz-from-Ubuntu workflow.

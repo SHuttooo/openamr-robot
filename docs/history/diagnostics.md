@@ -101,7 +101,7 @@ Setting up PlatformIO on a PEP 668 ("externally managed") Ubuntu was non-trivial
   available" / "Unable to acquire a CFE instance"). Fix: build the **Raspberry Pi fork of libcamera** +
   `camera_ros` from source (`~/camera_ws`). ⚠️ Over WiFi use the **compressed** image only (raw 2.76 MB/frame
   lags everything). See [../hardware/camera.md](../hardware/camera.md).
-- **Remote viz** from the Ubuntu desktop: domain 0 + Fast DDS + same LAN subnet. See [../software/visualization.md](../software/visualization.md).
+- **Remote viz** from the Ubuntu desktop: domain 0 + CycloneDDS + same LAN subnet. See [../software/visualization.md](../software/visualization.md).
 
 ### Hardware diagnosis (method: per-wheel PWM vs rpm via `/debug/*`)
 - **"Left wheel won't move"** = a **24 V faux-contact** (loose battery-side cable), NOT a driver/motor/PID

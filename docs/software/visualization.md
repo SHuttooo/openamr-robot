@@ -9,12 +9,12 @@ ROS 2 Jazzy natively (RViz, rqt). This is the workflow used on 2026-06-18.
 | Setting | Value | Why |
 |---|---|---|
 | `ROS_DOMAIN_ID` | **0** | Pi runs domain 0 (nothing set in its env). The dev desktop defaults to **42** → override it. |
-| `RMW_IMPLEMENTATION` | **rmw_fastrtps_cpp** (Fast DDS) | Pi uses the default Fast DDS. |
-| LAN subnet | **same** as the Pi (e.g. both `172.17.x.x/16`) | Fast DDS discovery is **multicast** → it does **not** cross a router. Different WiFi/subnet ⇒ no topics. |
+| `RMW_IMPLEMENTATION` | **rmw_cyclonedds_cpp** (CycloneDDS) | The whole stack switched to CycloneDDS on 2026-06-18 (required by the docking / Nav2 actions). The Pi's `~/.bashrc` now exports it. *(Before that it was Fast DDS — if you ever revert, match it on both ends.)* |
+| LAN subnet | **same** as the Pi (e.g. both `172.17.x.x/16`) | DDS discovery is **multicast** → it does **not** cross a router. Different WiFi/subnet ⇒ no topics. |
 
 ```bash
 export ROS_DOMAIN_ID=0
-export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 source /opt/ros/jazzy/setup.bash
 ros2 topic list            # should show /scan, /odom, /imu/data, /map, /camera/... from the Pi
 ```

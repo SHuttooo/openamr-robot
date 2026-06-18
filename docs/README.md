@@ -59,7 +59,7 @@ docs/
 - ✅ **LiDAR body filter** → `/scan_filtered` (robot chassis masked).
 - ✅ **SLAM** (`slam_toolbox`) builds & saves maps (first map `~/maps/coin1`).
 - ✅ **Camera working** (IMX708 NoIR via the **Raspberry Pi libcamera fork** — the apt one doesn't support it).
-- ✅ Remote visualization from an Ubuntu desktop (RViz/rqt, domain 0, Fast DDS, same subnet).
+- ✅ Remote visualization from an Ubuntu desktop (RViz/rqt, domain 0, CycloneDDS, same subnet).
 - ⏳ Nav2 + AMCL (autonomous navigation): to be set up (`openamr-platform-sw` cloned, not built).
 - ⏳ Camera **calibration** (needed before AprilTag docking).
 - ⚠️ Firmware PID gains are reconstructed (not the author's) — to verify against the real source (~2026-06-19).

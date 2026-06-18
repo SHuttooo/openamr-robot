@@ -17,7 +17,7 @@ This file describes **precisely** how each element talks to the others: the **ph
 | Teensy ↔ drivers | **GPIO** | **PWM + 2 direction lines** | PWM 3 kHz | per motor |
 | Pi ↔ LiDAR | **USB** (CP2102 UART bridge) | **RPLIDAR** serial protocol | **115200 baud** | `/dev/ttyUSB0` |
 | Pi ↔ Camera | **CSI** (MIPI ribbon) | libcamera / CSI | — | not USB |
-| ROS internal (on the Pi) | localhost | **DDS** (Fast DDS) | — | default RMW |
+| ROS internal (on the Pi) | localhost | **DDS** (CycloneDDS, since 2026-06-18) | — | RMW |
 
 > ⚠️ **Common ground is mandatory**: the drivers' `COM` must be tied to the **Teensy GND**, otherwise
 > the PWM/direction signals and the encoders pick up noise. (see [history/diagnostics.md](history/diagnostics.md))
@@ -111,12 +111,12 @@ map ──(slam_toolbox)──► odom ──(ekf_filter_node)──► base_lin
 - `map → odom`: from `slam_toolbox` (mapping). AMCL will provide it later for pure localization.
 
 ### DDS middleware & remote visualization
-- ROS 2 uses an **RMW** (DDS layer). **Fast DDS** (default), **`ROS_DOMAIN_ID = 0`** (Pi has neither set).
-- To view the Pi's topics from the **Ubuntu dev PC** (native RViz/rqt): same **domain 0**, same **Fast DDS**,
-  and **same LAN subnet** (Fast DDS discovery is multicast → does not cross a router). On Ubuntu run
+- ROS 2 uses an **RMW** (DDS layer). **CycloneDDS** (`rmw_cyclonedds_cpp`, since 2026-06-18), **`ROS_DOMAIN_ID = 0`** (Pi has neither set).
+- To view the Pi's topics from the **Ubuntu dev PC** (native RViz/rqt): same **domain 0**, same **CycloneDDS**,
+  and **same LAN subnet** (DDS discovery is multicast → does not cross a router). On Ubuntu run
   `export ROS_DOMAIN_ID=0` (this desktop defaults to 42). See [software/visualization.md](software/visualization.md).
-- ⚠️ OpenAMR's guide suggests CycloneDDS (domain 30); we are **not** using that. If we switch RMW later,
-  **all** nodes (incl. the dev PC) must use the same one.
+- ✅ Adopted **CycloneDDS** (2026-06-18, required by the docking/Nav2 actions). **All** nodes (Pi bring-up,
+  Nav2, dev PC) must use Cyclone + the same domain. (OpenAMR's guide also uses domain 30; we stay on 0.)
 
 ---
 
@@ -125,7 +125,8 @@ map ──(slam_toolbox)──► odom ──(ekf_filter_node)──► base_lin
 ```
 cmd_vel (Twist) ──► [agent] ──USB/micro-ROS──► [Teensy] ──PWM/dir──► [drivers] ──U/V/W──► [motors]
                                                   │
-[encoders] ──quadrature──► [Teensy] ──► /odom/unfiltered ──► [odom_tf_relay] ──► /odom + TF
+[encoders] ──quadrature──► [Teensy] ──► /odom/unfiltered ──► [EKF robot_localization] ──► /odom + TF
+[IMU gyro Z] ───────────────────────────────────────────────────────► [EKF] (fusion)
 [IMU MPU6500] ──I2C 0x68──► [Teensy] ──► /imu/data
 [LiDAR] ──USB/UART──► [rplidar_ros] ──► /scan ──► (filter) ──► /scan_filtered ──► [Nav2]
 [Nav2] ──► /cmd_vel  (closed navigation loop)
