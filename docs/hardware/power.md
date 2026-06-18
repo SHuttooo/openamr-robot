@@ -1,6 +1,6 @@
 # Power & electrical safety
 
-*Last updated: 2026-06-17.*
+*Last updated: 2026-06-18.*
 
 ## Power architecture
 | Element | Supply |
@@ -38,6 +38,23 @@ The 24 V side is low-risk, but the **AC/DC converter is fed by 230 V AC, which i
 4. **Fuse / breaker** on the mains input (short-circuit / overload).
 5. **Strain relief** on the mains cable; prefer an IEC inlet over flying leads.
 6. **Golden rule**: cut/unplug the mains **before** touching anything on the power side. Never work live.
+
+## Battery vs mains — measured 2026-06-18 (battery sags under load)
+Same motor step (0.25 m/s ≈ 24 rpm), comparing the PWM the PID needs to reach that speed:
+
+| Supply | PWM needed for ~23 rpm |
+|---|---|
+| AC/DC mains (24 V stiff) | ~180–220 |
+| Battery pack | **~290–349** (~60 % more) |
+
+The battery read **24.4 V at rest** but needs **~60 % more PWM** under load → it **sags under load**
+(weak/discharged pack or high internal/contact resistance). Not blocking now (PID compensates, PWM ≈ 34 %
+of the 1023 max), but at higher speeds it will **plateau**, and a sagging 24 V rail is what made the
+**left wheel drop out** when its cable also had a loose contact (see [history/diagnostics.md](../history/diagnostics.md)).
+
+**Practical rule:** keep the pack **charged**; if motors feel weak / one wheel drops, **check battery
+voltage under load** (multimeter on the terminals while commanding) and the 24 V connectors before
+suspecting the firmware/PID. Bench-test on mains for repeatable results.
 
 ## Stopping the robot quickly (test safety)
 - Software: stop publishing `/cmd_vel` → firmware zeroes motors after 200 ms (watchdog). `Ctrl-C` on the
