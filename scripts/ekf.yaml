@@ -1,0 +1,40 @@
+# EKF robot_localization — OpenAMR
+# Fusionne l'odometrie roues (/odom/unfiltered) + le gyro Z de l'IMU (/imu/data).
+# L'IMU MPU6500 n'a PAS d'orientation valide (quaternion nul) ni d'accelero fiable
+# (montee penchee ~14deg) -> on n'utilise QUE angular_velocity.z (vitesse de lacet).
+# Sortie : TF odom->base_link + /odometry/filtered (remappe en /odom).
+ekf_filter_node:
+  ros__parameters:
+    frequency: 30.0
+    sensor_timeout: 0.2
+    two_d_mode: true              # robot planaire : ignore z, roll, pitch
+    publish_tf: true
+    print_diagnostics: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # --- Odometrie roues : on prend vx (lineaire) et vyaw (rotation) ---
+    odom0: /odom/unfiltered
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  false, false,
+                   false, false, true,
+                   false, false, false]
+    odom0_differential: false
+    odom0_relative: false
+    odom0_queue_size: 10
+
+    # --- IMU : on prend UNIQUEMENT vyaw (= angular_velocity.z) ---
+    imu0: /imu/data
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_queue_size: 10
+    imu0_remove_gravitational_acceleration: true

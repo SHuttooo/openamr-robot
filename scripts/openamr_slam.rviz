@@ -1,0 +1,78 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Color: 160; 160; 164
+      Cell Size: 1
+      Plane Cell Count: 20
+      Reference Frame: <Fixed Frame>
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Names: true
+      Show Axes: true
+      Show Arrows: true
+      Marker Scale: 0.4
+    - Class: rviz_default_plugins/LaserScan
+      Name: LaserScan RAW
+      Enabled: true
+      Topic:
+        Value: /scan
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Best Effort
+        History Policy: Keep Last
+      Style: Points
+      Size (Pixels): 2
+      Color: 255; 40; 40
+      Color Transformer: FlatColor
+      Decay Time: 0
+    - Class: rviz_default_plugins/LaserScan
+      Name: LaserScan FILTERED
+      Enabled: true
+      Topic:
+        Value: /scan_filtered
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Best Effort
+        History Policy: Keep Last
+      Style: Points
+      Size (Pixels): 5
+      Color: 0; 255; 0
+      Color Transformer: FlatColor
+      Decay Time: 0
+    - Class: rviz_default_plugins/Map
+      Name: Map
+      Enabled: true
+      Topic:
+        Value: /map
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        History Policy: Keep Last
+      Color Scheme: map
+      Alpha: 0.7
+  Global Options:
+    Fixed Frame: map
+    Background Color: 48; 48; 48
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Measure
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: Current View
+      Distance: 12
+      Pitch: 1.2
+      Yaw: 3.14
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+Window Geometry:
+  Height: 900
+  Width: 1400

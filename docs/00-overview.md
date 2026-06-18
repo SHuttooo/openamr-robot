@@ -1,6 +1,6 @@
 # 00 — Overview & architecture
 
-*Last updated: 2026-06-17.*
+*Last updated: 2026-06-18.*
 
 ## What is this robot?
 
@@ -39,14 +39,15 @@ The robot has **two computers** that share the work:
                       │                RASPBERRY PI 5                 │
                       │  ROS 2 Jazzy                                  │
                       │                                               │
-   LiDAR  ─USB────────┤  rplidar_ros ──► /scan                        │
-   Camera ─CSI────────┤  (camera driver) ──► /rgb_image  (TODO)       │
+   LiDAR  ─USB────────┤  rplidar_ros ──► /scan ──► scan_body_filter ──► /scan_filtered │
+   Camera ─CSI────────┤  camera_ros (RPi libcamera fork) ──► /camera/image_raw │
                       │                                               │
                       │  micro-ROS agent ◄──USB──► Teensy             │
                       │      ▲ /cmd_vel        │ /odom/unfiltered,     │
                       │      │                 ▼ /imu/data, /debug/*   │
-                      │  odom_tf_relay ──► /odom + TF odom→base_link   │
-                      │  Nav2 / SLAM (TODO) ──► /cmd_vel               │
+                      │  EKF (robot_localization) ──► /odom + TF odom→base_link │
+                      │  slam_toolbox ──► /map + TF map→odom           │
+                      │  Nav2 / AMCL (TODO) ──► /cmd_vel               │
                       └───────────────────────┬───────────────────────┘
                                               │ USB (micro-ROS, 115200)
                       ┌───────────────────────┴───────────────────────┐
@@ -89,7 +90,7 @@ The robot has **two computers** that share the work:
 | Encoders | AS5040 magnetic, 1024 CPR | [hardware/encoders.md](hardware/encoders.md) |
 | IMU | **MPU6500** (thought to be MPU6050) | [hardware/imu.md](hardware/imu.md) |
 | LiDAR | RPLidar (on the Pi's USB) | [hardware/lidar.md](hardware/lidar.md) |
-| Camera | Pi Camera Module 3 (IMX708) | [hardware/camera.md](hardware/camera.md) |
+| Camera | Pi Camera Module 3 **NoIR** (IMX708) — **working** via RPi libcamera fork | [hardware/camera.md](hardware/camera.md) |
 | Power | 24 V (AC/DC converter) | [hardware/power.md](hardware/power.md) |
 
 ## Software stack

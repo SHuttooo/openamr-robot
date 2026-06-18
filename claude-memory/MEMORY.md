@@ -7,3 +7,7 @@
 - [Firmware debug flashé](amr-firmware-debug-flashed.md) — /debug/left|right|pwm (counts bruts), IMU réparée (puce = MPU6500 → USE_MPU9250_IMU), chaîne build/flash PlatformIO sur le Pi
 - [Bring-up réel (1 launch)](amr-real-bringup.md) — openamr_real_bringup.launch.py = agent+lidar+odom→TF ; /cmd_vel /odom /imu /scan + TF prêts pour SLAM/Nav2 ; gotcha reset lidar
 - [Emballement droit RÉSOLU](amr-runaway-rootcause.md) — 2 pots du driver droit : VAR (10 vs 3,5) = survitesse, ACC/DEC (0 vs 4) = à-coups ; alignés sur le gauche → roue droite stable
+- [Câblage couleurs DC](amr-wiring-dc-colors.md) — sur ce robot, alim continue : marron = + (rouge), bleu = − (noir) ; contre-intuitif, vérifier au multimètre
+- [Caméra IMX708 / libcamera](amr-camera-imx708-libcamera.md) — HW OK (imx708_noir relié), mais libcamera upstream ne gère pas la Cam Module 3 sur Pi5 → compiler le fork Raspberry Pi de libcamera + camera_ros
+- [PID / roue gauche](amr-pid-tracking-observation.md) — roue gauche intermittente = faux contact 24V (pas le PID) ; droite plus faible ; tuning à attendre (vraie source firmware)
+- [Session 2026-06-18](amr-session-2026-06-18.md) — EKF IMU, filtre scan, SLAM+carte coin1, caméra IMX708 (fork RPi libcamera), roue gauche faux-contact, doc MAJ

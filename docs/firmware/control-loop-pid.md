@@ -1,6 +1,13 @@
 # Control loop & PID
 
-*Last updated: 2026-06-17.*
+*Last updated: 2026-06-18.*
+
+> ⚠️ **Gains are RECONSTRUCTED, not the author's.** Observed 2026-06-18: the wheels **don't precisely
+> reach the commanded `/cmd_vel`** (steady-state tracking error). Two candidate causes — don't assume it's
+> only the PID: (1) non-optimal reconstructed gains; (2) **battery voltage sag** (on batteries, < 24 V →
+> lower max wheel speed → the wheels plateau below high commands). **Plan: a step-response test** on
+> `/debug/left|right` (target vs measured rpm) to judge rise time / overshoot / steady-state error, and
+> **compare with the real firmware source** (the author's tuning, expected ~2026-06-19) before re-tuning.
 
 ## The 50 Hz loop (`firmware.ino`)
 A ROS timer fires every **20 ms** → `controlCallback` → `moveBase()` then `publishData()`.

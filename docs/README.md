@@ -34,6 +34,7 @@ docs/
     ros-architecture.md
     bringup.md
     navigation.md
+    visualization.md     <- RViz/rqt from the Ubuntu dev PC (domain, RMW, compressed camera)
   procedures/            <- how-to (step by step)
     running-the-robot.md
     safety.md
@@ -53,9 +54,15 @@ docs/
 - ✅ Differential 2-wheel base, hardware base working.
 - ✅ Right wheel: runaway fixed (motor-driver tuning).
 - ✅ IMU repaired (it was an MPU6500, not an MPU6050).
-- ✅ Real bring-up in a single launch (`/cmd_vel /odom /imu/data /scan` + TF).
-- ⏳ Navigation (SLAM + Nav2): to be set up.
-- ⏳ Camera: not configured yet.
+- ✅ Real bring-up in a single launch (`/cmd_vel /odom /imu/data /scan /scan_filtered /camera/*` + TF).
+- ✅ **Odometry EKF** (`robot_localization`): wheels + IMU gyro Z fused → `/odom`.
+- ✅ **LiDAR body filter** → `/scan_filtered` (robot chassis masked).
+- ✅ **SLAM** (`slam_toolbox`) builds & saves maps (first map `~/maps/coin1`).
+- ✅ **Camera working** (IMX708 NoIR via the **Raspberry Pi libcamera fork** — the apt one doesn't support it).
+- ✅ Remote visualization from an Ubuntu desktop (RViz/rqt, domain 0, Fast DDS, same subnet).
+- ⏳ Nav2 + AMCL (autonomous navigation): to be set up (`openamr-platform-sw` cloned, not built).
+- ⏳ Camera **calibration** (needed before AprilTag docking).
+- ⚠️ Firmware PID gains are reconstructed (not the author's) — to verify against the real source (~2026-06-19).
 
 ---
-*Last updated: 2026-06-17.*
+*Last updated: 2026-06-18.*

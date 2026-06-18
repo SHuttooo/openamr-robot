@@ -1,6 +1,6 @@
 # IMU (MPU6500)
 
-*Last updated: 2026-06-17.*
+*Last updated: 2026-06-18.*
 
 ## Overview
 An inertial measurement unit (accelerometer + gyroscope) on the Teensy's I²C bus. Used to improve
@@ -34,6 +34,18 @@ The linorobot2 **MPU6050** driver checks `WHO_AM_I == 0x68` and **rejects** our 
 - ✅ `/imu/data` publishes **real data**: at rest, `linear_acceleration.z ≈ 9.74 m/s²` (gravity).
 - The `linear_acceleration.x ≈ -2` at rest means the IMU is **mounted at a slight tilt** (to account for
   in the URDF later).
+
+## Fusion in the EKF (done 2026-06-18)
+The IMU is now fused by the `robot_localization` **EKF** (`~/ekf.yaml`) — but **only `angular_velocity.z`**
+(yaw rate). Measured behaviour at rest (robot perfectly still): gyro X/Y/Z biases are tiny, and **gyro Z
+reads ~0 with a firmware deadband** → no heading drift on straight lines. During an actual turn, gyro Z
+**tracks the real rotation** closely (verified against wheel odometry, e.g. both ≈ −25 °/s while turning).
+Conclusion: the gyro Z is healthy and the fusion mainly **reduces heading drift in turns** (where wheels
+slip). The accelerometer is **not** used (tilted mount + only yaw matters in 2D). See
+[../software/ros-architecture.md](../software/ros-architecture.md).
+
+> ⚠️ Measure the bias only when the robot is **strictly immobile** — moving it during the capture gives a
+> bogus (even sign-flipping) bias reading.
 
 ## Good to know / gotchas
 - **No orientation**: the driver provides raw accel + gyro only; the orientation quaternion in

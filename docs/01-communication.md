@@ -87,24 +87,36 @@ Per motor, 3 logic wires:
 ### Topics produced on the Pi (in addition to the Teensy's)
 | Topic | Type | Produced by | Frame |
 |---|---|---|---|
-| `/odom` | `nav_msgs/msg/Odometry` | `odom_tf_relay` (republishes `/odom/unfiltered`) | odom → base_link |
+| `/odom` | `nav_msgs/msg/Odometry` | **`ekf_filter_node`** (robot_localization; fuses wheels + IMU yaw) | odom → base_link |
 | `/scan` | `sensor_msgs/msg/LaserScan` | `rplidar_ros` | lidar_link |
-| `/scan_filtered` | `sensor_msgs/msg/LaserScan` | Nav2 scan filter (TODO) | lidar_link |
-| `/rgb_image`, `/camera_info` | `sensor_msgs/Image`, `CameraInfo` | camera driver (TODO) | camera_optical_frame |
+| `/scan_filtered` | `sensor_msgs/msg/LaserScan` | **`scan_body_filter.py`** (masks robot body) | lidar_link |
+| `/map` | `nav_msgs/msg/OccupancyGrid` | `slam_toolbox` | map |
+| `/camera/image_raw` (+ `/compressed`) | `sensor_msgs/Image`, `CompressedImage` | `camera_ros` (RPi libcamera fork) | camera_optical_frame |
+| `/camera/camera_info` | `sensor_msgs/msg/CameraInfo` | `camera_ros` | camera_optical_frame |
+
+> ⚠️ **Camera bandwidth**: `/camera/image_raw` is ~2.76 MB/frame (1280×720). Over WiFi, always use the
+> **`compressed`** topic; never subscribe to raw remotely (it lags the whole network). See
+> [hardware/camera.md](hardware/camera.md).
 
 ### Transform tree (TF)
 ```
-map ──(SLAM/AMCL, TODO)──► odom ──(odom_tf_relay)──► base_link ──(static TF)──► lidar_link
-                                                                └────────────────► camera_link (TODO)
+map ──(slam_toolbox)──► odom ──(ekf_filter_node)──► base_link ──(static)──► lidar_link
+                                                            ├──(static)──► imu_link
+                                                            ├──(static)──► base_footprint
+                                                            └──(static)──► camera_link ──► camera_optical_frame
 ```
-- `odom → base_link`: published by `odom_tf_relay` from the pose in `/odom/unfiltered`.
-- `base_link → lidar_link`: **static** TF (offset to be measured; placeholder z=0.18 m, yaw=0).
-- `map → odom`: will come from SLAM (mapping) then AMCL (localization).
+- `odom → base_link`: published by the **EKF** (`robot_localization`), fusing wheel odom + IMU yaw rate.
+- `base_link → lidar_link`: **static**, measured: x=0.335, y=0, z=0.18, **yaw=π** (LiDAR mounted rotated 180°).
+- `base_link → camera_link → camera_optical_frame`: static, x=0.415/z=0.12, then optical convention.
+- `map → odom`: from `slam_toolbox` (mapping). AMCL will provide it later for pure localization.
 
-### DDS middleware
-- ROS 2 uses an **RMW** (DDS layer). Currently **Fast DDS** (default).
-- ⚠️ **OpenAMR recommends CycloneDDS** (`RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`) — to enable when we
-  integrate `openamr-platform-sw`. All nodes must use the **same** RMW.
+### DDS middleware & remote visualization
+- ROS 2 uses an **RMW** (DDS layer). **Fast DDS** (default), **`ROS_DOMAIN_ID = 0`** (Pi has neither set).
+- To view the Pi's topics from the **Ubuntu dev PC** (native RViz/rqt): same **domain 0**, same **Fast DDS**,
+  and **same LAN subnet** (Fast DDS discovery is multicast → does not cross a router). On Ubuntu run
+  `export ROS_DOMAIN_ID=0` (this desktop defaults to 42). See [software/visualization.md](software/visualization.md).
+- ⚠️ OpenAMR's guide suggests CycloneDDS (domain 30); we are **not** using that. If we switch RMW later,
+  **all** nodes (incl. the dev PC) must use the same one.
 
 ---
 
