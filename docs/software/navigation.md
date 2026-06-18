@@ -76,7 +76,41 @@ ros2 service call /slam_toolbox/deserialize_map slam_toolbox/srv/DeserializePose
 6. **Localization + Nav2**: AMCL with the saved map, then the navigation launch; send goals in RViz.
 7. **Docking** (later): needs the camera (✅ streaming) + **calibration** + AprilTags.
 
+## Docking (real robot) — plan & status
+
+The `openamrobot_docking` package works in **simulation** (Gazebo + Nav2 + AprilTag; validated by the
+author). Porting it to the **real robot** is a multi-step effort.
+
+**Status 2026-06-18:**
+- ✅ `openamr-platform-sw` **built on the Pi** (`~/openamr-platform-sw/ros2`, packages `description`,
+  `nav2`, `gazebo`, `docking`). To build docking, `openamrobot_gazebo` must be built too (build-order dep)
+  even though gazebo's `ros_gz` runtime deps aren't on the headless Pi.
+- ✅ Full stack installed on the Pi: `ros-jazzy-navigation2`, `nav2-bringup`, `apriltag-ros`, `image-proc`,
+  `rmw-cyclonedds-cpp`, `laser-filters`, `joint-state-publisher`.
+
+**How the docking works (from the sim):** `apriltag_ros` detects a 3-tag 36h11 bundle (IDs 0/1/2) on
+`/rgb_image` + `camera_info` → TF per tag; `detected_dock_pose_publisher` → `/detected_dock_pose` (centre
+tag); `dock_trigger.py` waits on `/dock_trigger` → `NavigateToPose` to a staging zone, then approaches.
+
+**⚠️ Hard requirements for real docking (gaps):**
+1. **Camera calibration** (checkerboard) → real intrinsics + `image_proc` rectification (AprilTag needs it).
+2. **A physical AprilTag dock** — print 3× 36h11 tags (IDs 0/1/2), measure size, config.
+3. **Nav2 + AMCL on a real SLAM map** (the foundation — docking is NavigateToPose + approach).
+4. **CycloneDDS across the WHOLE stack** — `dock_trigger.py` crashes on Fast DDS for Nav2 action goals.
+   Our bring-up currently runs Fast DDS → switching is disruptive (agent, lidar, filter, EKF, camera + dev PC).
+5. **robot_state_publisher + URDF** (openamrobot_description, geometry Ø0.2/0.45) for the Nav2 footprint.
+6. **Topic remaps**: our camera is `/camera/image_raw`; docking expects `/rgb_image` + synced `camera_info`.
+   Our `/scan_filtered` (scan_body_filter.py) can replace the package's `laser_filters` chain.
+
+**⚠️ Isolation gotcha (learned):** running the docking **sim** on the **same `ROS_DOMAIN_ID` (0)** as the
+real robot makes them interfere — the real robot's base_link TF (wall-time) collides with the sim's
+(sim-time) → `TF_OLD_DATA` flood → `NavigateToPose` aborts. Run the sim on a **separate domain** (e.g. 5).
+
+**Suggested order:** (1) Nav2 real: CycloneDDS + URDF + real map + AMCL → validate a `NavigateToPose`;
+(2) camera calibration + AprilTag detection on the real camera; (3) docking trigger end-to-end.
+
 ## Reference
 The provided guide `~/openamr_hardware_bringup_guide/README_OPENAMR_HARDWARE_BRINGUP.md` documents the
 contract, the safety limits (max 0.05 m/s to start), the calibration procedures, and the SLAM→Nav2→docking
-flow in detail.
+flow in detail. The docking package's own docs are excellent: `~/openamr-platform-sw/ros2/src/openamrobot_docking/docs/`
+(quickstart, apriltag, camera_calibration, tf_frames, troubleshooting…).

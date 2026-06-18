@@ -11,3 +11,4 @@
 - [Caméra IMX708 / libcamera](amr-camera-imx708-libcamera.md) — HW OK (imx708_noir relié), mais libcamera upstream ne gère pas la Cam Module 3 sur Pi5 → compiler le fork Raspberry Pi de libcamera + camera_ros
 - [PID / roue gauche](amr-pid-tracking-observation.md) — roue gauche intermittente = faux contact 24V (pas le PID) ; droite plus faible ; tuning à attendre (vraie source firmware)
 - [Session 2026-06-18](amr-session-2026-06-18.md) — EKF IMU, filtre scan, SLAM+carte coin1, caméra IMX708 (fork RPi libcamera), roue gauche faux-contact, doc MAJ
+- [Docking/Nav2 réel](amr-docking-nav2-real.md) — openamr-platform-sw buildé sur le Pi ; plan portage docking réel (CycloneDDS, calib caméra, dock AprilTag physique, gotcha isolation domaine sim)
