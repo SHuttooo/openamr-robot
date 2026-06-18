@@ -54,8 +54,30 @@ odometry.update() ─► /odom/unfiltered     (pose integrated here)
 - One PID per wheel: `pid = Kp·e + Ki·∫e + Kd·Δe`, output clamped to `[PWM_MIN, PWM_MAX]`.
 - Gains (tuned 2026-06-18): `K_P=0.6, K_I=0.35, K_D=0.15` (was 0.3 / 0.15 / 0.25 — K_I was too low).
 - ⚠️ The **upstream PID had no anti-windup** (the integral was unbounded). We **added integral clamping**
-  so `Ki·integral` cannot exceed the output range — this prevents the integral "catapult" that amplified
-  the right-wheel instability. We also lowered `K_I` (0.4 → 0.15) to damp the loop.
+  (`i_limit = PWM_MAX / K_I`) so `Ki·integral` cannot exceed the output range — this prevents the integral
+  "catapult". K_I history: 0.4 → 0.15 (to damp the right-wheel limit-cycle) → **0.35** (2026-06-18 tune,
+  0.15 was over-damped and left a −26 % steady-state error). See the tuning log below.
+
+## PID tuning log (2026-06-18, step-response @ 0.25 m/s ≈ 24 rpm)
+| K_P | K_I | K_D | steady-state err | rise t90 | overshoot G/D | verdict |
+|----:|----:|----:|---|---|---|---|
+| 0.3 | 0.15 | 0.25 | **−26 %** | ~2.9 s | low | original — too slow, never reaches setpoint (K_I too low) |
+| 0.6 | 0.5  | 0.15 | ±2 % | **0.85 s** | +23 % / +109 % | fast but rings (overshoot) |
+| **0.6** | **0.35** | **0.15** | **±2 %** | ~1.2 s | +10 % / +35-47 % | ✅ **chosen** — best balance |
+| 0.6 | 0.35 | 0.25 | −2…−20 % (noisy) | ~1.2 s | +84-109 % | worse — more K_D amplifies rpm-measurement noise |
+
+**Conclusions:**
+- The dominant fix was **raising K_I** (0.15 → 0.35): kills the steady-state error, keeps overshoot sane.
+- Adding K_D did **not** help (amplifies the quantized rpm noise). Right-wheel overshoot is dominated by
+  the **right drive's dynamics + the ~2.9 rpm measurement quantization**, not by gains → we hit the
+  **measurement noise floor**. Further gain tuning is unreliable below this. To go further: finer rpm
+  measurement, per-wheel gains, or balance the right driver pots / add firmware feedforward.
+
+**Tuning workflow used:** edit `config/lino_base_config.h` (NOT `dev_config.h` — `-e teensy40` uses the
+former), `pio run -e teensy40`, then flash. Helper: `scripts/tune.sh KP KI KD` (does edit+build+flash+agent).
+⚠️ Flashing: `teensy_loader_cli -s` (soft reboot) is timing-flaky ("error writing"). **Reliable method:
+press the Teensy's physical button → HalfKay (LED off, stays) → `teensy_loader_cli -w <hex>`** (retry once
+if "error writing"; it stays in HalfKay). A USB unplug/replug after a failed flash boots the last good firmware.
 
 ## Safety
 - **Command watchdog**: if no `/cmd_vel` for **200 ms**, the firmware sets the twist to zero → motors stop.
