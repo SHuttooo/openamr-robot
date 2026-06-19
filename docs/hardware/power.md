@@ -1,6 +1,26 @@
 # Power & electrical safety
 
-*Last updated: 2026-06-19.*
+*Last updated: 2026-06-20.*
+
+## 🔋 État de charge batterie — SEUILS (24 V plomb) — LIRE AVANT TOUT TEST NAV
+Système 24 V = 2× plomb 12 V en série. Tension **au repos** (sans charge) :
+
+| Tension repos | État | Pour la navigation |
+|---|---|---|
+| **~25,5–26 V** | pleine charge | ✅ OK pour tester |
+| **~24,5 V** | ~70 % | ✅ acceptable |
+| **~24 V** | ~50 % | ⚠️ limite |
+| **≤ 23,5 V** | déchargé (~30 %) | ❌ **NE PAS tester la nav** |
+
+⚠️ C'est la tension **au repos** : **sous charge (moteurs), elle chute encore** (souvent −1 à −2 V en pointe,
+cf le pack qui sague). En dessous de ~22 V sous charge → drivers en sous-tension → **couple mou + roue
+gauche (faux-contact) décroche → le robot ne suit pas le plan → percute des obstacles pourtant évités par
+la nav.** **RÈGLE : viser ≥ 25 V au repos avant tout test de navigation/évitement.** Sinon on debugge Nav2
+pour rien (déjà arrivé : le vrai problème était le 24 V, pas la nav).
+
+**Relevé 2026-06-20 (fin de session)** : batterie à **23,4 V au repos → trop bas**. Tout test d'évitement
+de cette session est non concluant tant que la batterie n'est pas rechargée (~25,5 V). À reprendre après
+charge.
 
 ## Power architecture — VERIFIED 2026-06-19
 ```

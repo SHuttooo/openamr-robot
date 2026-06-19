@@ -201,8 +201,8 @@ stuck rotating → kept DWB); **inflation = soft planning cost**, not collision 
 controller's real-time footprint check; hard guarantee = Collision Monitor / footprint padding — next).
 
 ## 9. Still open / next
-- **Hard collision avoidance**: Collision Monitor (stop-zone = footprint+margin) or footprint padding, so
-  the robot never touches obstacles with low inflation (inflation alone is only a soft planning cost).
+- **Hard collision avoidance**: ✅ done via **footprint padding +0.12 m** (see §10). Collision Monitor was
+  tried but stopped the robot → abandoned.
 - **DWB weave**: reduce the residual snaking (raise PathAlign/PathDist, lower vtheta_samples) without
   breaking what works; or revisit a properly-tuned RPP.
 - **Nav2 launch hygiene**: edit `navigation_launch.py` to NOT start its duplicate scan filter; consider a
@@ -213,3 +213,56 @@ controller's real-time footprint check; hard guarantee = Collision Monitor / foo
 - **robot_state_publisher + URDF** (optional; static TFs + footprint cover current needs).
 - **Battery telemetry**: still no software voltage readout (lead-acid sags under load).
 - **Completeness**: read the LiDAR model, DC-DC model, AC/DC converter, Pi RAM, gearbox ratio (`4GN__K`).
+
+## 10. Session 2026-06-20 — obstacle avoidance: costmaps, footprint padding, battery
+
+### Root cause: BOTH costmaps were EMPTY → robot navigated blind → hit everything
+After a reboot, `navigation_launch` was started before AMCL had `map→odom`, so the costmap lifecycle
+**aborted** ("transform from base_link to map did not become available"). The nodes were then **activated
+by hand** (`ros2 lifecycle set ... activate`) — which brings them up **mis-initialized**: the static layer
+never loads the map and the obstacle layer never subscribes to the scan. Result: `/global_costmap/costmap`
+and `/local_costmap/costmap` both reported **0 occupied cells** → DWB had nothing to avoid → the robot drove
+straight into obstacles ("de plein fouet"). **Fix: relaunch navigation only AFTER `map→odom` exists** (set
+2D Pose Estimate first), let the `lifecycle_manager` activate cleanly — never hand-activate. After a clean
+relaunch: **36041 global / 3602 local occupied cells** → obstacles seen again.
+
+### Obstacle-avoidance margin (user: "avoid obstacles within 10–20 cm of the robot shape")
+- **inflation = soft planning cost only** (the blue halo) — does NOT stop the robot touching things.
+- The **hard** lever = **pad the footprint**. DWB checks the footprint against the local costmap every cycle,
+  so a footprint padded by **+0.12 m** = a hard "never bring the hull within ~12 cm of a lidar-seen obstacle".
+  Applied to both costmaps + persisted; inflation set to **0.20** (planner also routes ~20 cm away).
+  `obstacle_min_range` set to **0.0** (scan_body_filter already removes the body; user forbade a min range).
+- Padded footprint (base_link frame):
+  `[[0.535,0.31],[0.535,-0.31],[0.435,-0.41],[-0.385,-0.41],[-0.485,-0.31],[-0.485,0.31],[-0.385,0.41],[0.435,0.41]]`
+- ⚠️ Padded footprint makes the robot "bigger" in RViz (collision shape only, not physical) → in a very
+  tight space Nav2 may fail to find a path; reduce the pad if boxed in.
+
+### Two limits that no Nav2 tuning can fix
+1. **2D-lidar height blind spot**: lidar at ~18 cm sees only a horizontal slice → obstacles **shorter than
+   ~18 cm are invisible** to the costmap → can't be avoided (nothing to avoid). Needs hardware (low sensor /
+   tilted depth cam / bumper). Test avoidance with obstacles **> 20 cm tall**.
+2. **Execution ≠ plan**: the robot still hit objects that ARE visible on the map. If the costmap sees the
+   obstacle and the robot hits it anyway, the **plan avoids it but the robot doesn't follow the plan** —
+   prime suspects: **left-wheel faux-contact** (blocker #1 → robot veers) and/or **AMCL drift while moving**
+   (bad odometry from the flaky wheel). NOT a costmap/inflation problem.
+
+### Battery too low to draw conclusions
+Battery read **23.4 V at rest** (24 V lead-acid pack) → ~30 %, **discharged**. Under motor load it sags
+further → weak/erratic torque, the flaky left wheel drops out more → robot doesn't track the path → hits
+obstacles. **Avoidance tests at 23.4 V are not conclusive.** Rule added to [../hardware/power.md](../hardware/power.md):
+**charge to ≥ 25 V at rest before any navigation/avoidance test.** (Same trap as before: don't debug Nav2
+while the 24 V rail is weak.)
+
+### Saved
+Map re-saved as `~/maps/coin_ok.{pgm,yaml}` (+ `coin2.*.bak` backups). Config snapshot
+`config/nav2_params_real.yaml` updated (footprint, inflation 0.20, min_range 0). Live-trace tooling left on
+the Pi: `/tmp/trace.sh` (cmd_vel vs odom vs wheel rpm during a goal — rerun after charging).
+
+### Next session (resume here)
+1. **Charge the battery** to ≥ 25 V at rest. Verify under load.
+2. Bring up the stack (`/tmp/bringall.sh`), set 2D Pose Estimate, confirm costmaps non-empty (occupancy
+   check in [../software/navigation.md](../software/navigation.md) "Verify it's healthy").
+3. Run `/tmp/trace.sh` during a goal toward a **tall (>20 cm)** obstacle → check whether **cmd_vel matches
+   odom** (else = wheel/execution = fix left-wheel cable, blocker #1) and **AMCL stays localized** (else =
+   localization). This decides whether the remaining problem is nav tuning, hardware, or localization.
+4. If execution is clean and it still hits a tall, mapped obstacle → revisit DWB tuning / footprint pad.
