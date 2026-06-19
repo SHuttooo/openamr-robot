@@ -20,12 +20,15 @@ qui fait/coupe au moindre flex/vibration. Le wiggle des connecteurs ne l'a pas l
 (parfois revient en bougeant, parfois pas, parfois sans rien toucher) → typique d'un **fil coupé à
 l'intérieur de la gaine** ou d'un contact oxydé. Pas réparable à distance.
 
-**À FAIRE DEMAIN (Matthieu, manuel) :**
+**MAJ 2026-06-19 : la roue gauche est STABLE pour l'instant** — testée sur **3 runs soutenus** (boucle
+ouverte PWM 300 + cmd_vel), **aucun décrochage**, counts strictement monotones. Donc soit le contact est
+bon actuellement, soit l'audit câblage (manip des fils) l'a remis. ⚠️ **Mais un faux-contact est
+intermittent par nature → à resurveiller** si on manipule les câbles / au moindre décrochage. Si ça
+revient :
 1. **Réparer le faisceau gauche** : multimètre en continuité **en pliant** chaque fil (24 V + phases
-   U/V/W) → trouver le brin cassé → **re-souder / remplacer** (ne pas juste re-sertir, ça revient).
-2. **Test d'échange driver G↔D** si doute : si le défaut suit le driver → driver gauche HS ; s'il reste
-   à gauche → moteur/câblage gauche.
-3. Vérifier driver gauche : LED/fault, chaud ? (piste thermique).
+   U/V/W) → trouver le brin cassé → **re-souder / remplacer** (ne pas juste re-sertir).
+2. **Test d'échange driver G↔D** : défaut suit le driver → driver HS ; reste à gauche → moteur/câblage.
+3. Vérifier driver gauche : LED/fault, chaud ?
 
-C'EST LE SEUL BLOQUEUR RESTANT. Tout le logiciel est prêt (cf [[amr-session-2026-06-18]]).
-Voir aussi [[amr-pid-tracking-observation]], [[amr-runaway-rootcause]], docs/hardware/motors-drivers.md.
+N'est plus le bloqueur actif (mais surveiller). Logiciel prêt (cf [[amr-session-suite-nav2-cyclone]]).
+Voir aussi [[amr-pi-ros-commands]], [[amr-driver-balance-dip]], docs/hardware/motors-drivers.md.

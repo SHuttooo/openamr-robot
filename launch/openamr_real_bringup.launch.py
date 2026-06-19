@@ -78,11 +78,14 @@ def generate_launch_description():
         Node(
             package='camera_ros', executable='camera_node', name='camera',
             parameters=[{
-                'width': 640,
-                'height': 480,
+                'width': 1280,
+                'height': 720,
                 'format': 'RGB888',
                 'frame_id': 'camera_optical_frame',
                 'FrameDurationLimits': [100000, 100000],   # ~10 fps (leger pour le WiFi en compresse)
+                # Calibration intrinseque 2026-06-19 (faite en 1280x720 -> resolution DOIT matcher).
+                # Le YAML vient de scripts/camera_info.yaml (copie sur le Pi). Remote = topic compresse.
+                'camera_info_url': 'file:///home/botshare/camera_info.yaml',
             }],
             respawn=True, respawn_delay=3.0,
             output='screen'),

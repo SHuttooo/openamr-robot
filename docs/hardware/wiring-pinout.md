@@ -1,8 +1,15 @@
 # Wiring & Teensy 4.0 pinout
 
-*Last updated: 2026-06-17.*
+*Last updated: 2026-06-19.*
 
 Convention: **MOTOR1 = LEFT wheel, MOTOR2 = RIGHT wheel.** Logic level **3.3 V**.
+
+> **Verification status (2026-06-19):** full wiring/component audit done. Physically verified —
+> **drivers + motors** (ZBLD C20-120L2R + ZD Z4BLD60-24GN-30S, both drivers identical), **encoders**
+> (AS5040; the 5 V→~4 V overvoltage was **fixed → now 3.3 V**, see [encoders.md](encoders.md)), **IMU**
+> (MPU-6500, SDA18/SCL19, 3.3 V, 0x68), **Teensy = 4.0** (i.MX RT1062), **power/24 V** (no fuse / no
+> battery cut-off — see [power.md](power.md)). Component list + datasheets: [components-bom.md](components-bom.md).
+> Still to read (completeness): LiDAR model, DC-DC model, AC/DC, Pi RAM, gearbox ratio.
 
 ## Teensy 4.0 pin assignment
 
@@ -26,15 +33,57 @@ Convention: **MOTOR1 = LEFT wheel, MOTOR2 = RIGHT wheel.** Logic level **3.3 V**
 > These values are also the `#define`s in `lino_base_config.h` (see [firmware/firmware.md](../firmware/firmware.md)).
 > Note: `MOTOR1_PWM` is pin **1** (pin 21 is **not** a PWM pin on the Teensy 4.x — a common upstream pitfall).
 
-## Driver wiring (per motor)
-| Teensy | → Driver (ZBLD) |
-|---|---|
-| PWM pin | `VAR / AI2` (speed setpoint) |
-| IN_A pin | `FWD / DI1` (forward) |
-| IN_B pin | `REV / DI2` (reverse) |
-| GND | `COM` (**common ground — mandatory**) |
+## Driver wiring — ZBLD C20-120L2R (VERIFIED 2026-06-19)
 
-Driver power: `DC+ / DC− = 24 V` (fused). Motor side: phases **U/V/W** + Hall sensors.
+Both drivers are wired **identically** (only the Teensy pins differ). The signal terminal block has 12
+positions; **exactly 4 are connected** per driver (read off the board: `x`=wired, `o`=empty, from FWD):
+
+```
+FWD/DI1  REV/DI2  JOG/DI3  CLR/DI4  BRK/DI5  COM  VAR/AI2  +5V  ERR/DO1  SPD/DO2  A+  B-
+   x        x        o        o        o      x      x      o      o        o     o   (o)
+```
+
+| Driver terminal | Role | ← Teensy LEFT (M1) | ← Teensy RIGHT (M2) |
+|---|---|---|---|
+| `VAR/AI2` | speed setpoint, analog **0–5 V** (Teensy PWM @3 kHz, filtered) | PWM **1** | PWM **5** |
+| `FWD/DI1` | forward direction (digital) | IN_A **20** | IN_A **6** |
+| `REV/DI2` | reverse direction (digital) | IN_B **21** | IN_B **8** |
+| `COM` | **common ground — mandatory** | GND | GND |
+
+Unused: `JOG/DI3`, `CLR/DI4`, `BRK/DI5` (brake), `+5V`, `ERR/DO1` (no fault read-back), `SPD/DO2`
+(no speed feedback to the Teensy), `A+/B−` (RS485 not used). Speed/gain is set by the on-board **VAR/AI1**
+pot + **ACC/DEC** ramp pot (see [motors-drivers.md](motors-drivers.md)).
+
+> ⚠️ The Teensy uses the `USE_GENERIC_2_IN_MOTOR_DRIVER` profile (PWM + INA + INB). On this BLDC driver
+> that maps cleanly: PWM→speed (`VAR/AI2`), INA→`FWD/DI1`, INB→`REV/DI2`. The driver does its own
+> commutation from the Hall sensors — the Teensy never sees U/V/W.
+
+### DIP switches (config applied 2026-06-19, identical both drivers)
+| SW1 | SW2 | SW3 | SW4 | SW5 | SW6 |
+|---|---|---|---|---|---|
+| **OFF** | **ON** | OFF | **ON** | **ON** | OFF |
+
+- **SW1 = OFF → open loop** (driver is a power stage; the **Teensy PID** is the sole regulator — best
+  for this robot, removes the double loop). *Was ON (closed loop); changed 2026-06-19.* Validated: smooth.
+- **SW2 = ON → speed source = AI2** (the external 0–5 V input where our PWM arrives). Must stay ON.
+- **SW4 = ON, SW5 = ON → 5 pole pairs** (motor is P=5). *Was OFF/OFF (=2 pp, wrong); corrected.*
+  Irrelevant in open loop but set correctly for future closed-loop use.
+- **SW6 = OFF** (no RS485). See the full rationale in [motors-drivers.md](motors-drivers.md).
+- ⚠️ With SW2=ON (AI2 source), the **VAR pot is inert** for balancing — speed comes from the PWM, not the
+  pot. The residual ~9 % open-loop L/R asymmetry is handled by the Teensy PID (→ ~0.2 %).
+
+## Motor wiring (per motor) — VERIFIED 2026-06-19
+Driver **power**: `V+ / V− = 24 V DC` (大 screw terminals, bottom-right, `电源DC24V`), fused.
+Driver **motor connector** (white Molex, 8 pins):
+
+| `U` | `V` | `W` | `Hu` | `Hv` | `Hw` | `Vcc` | `0V` |
+|---|---|---|---|---|---|---|---|
+| phase U | phase V | phase W | Hall U | Hall V | Hall W | +5 V (Hall supply) | GND (Hall) |
+
+> 🔧 **Left-wheel blocker:** the left signal wiring (4 terminals above) is **proven healthy**, so the
+> intermittent left wheel is NOT here — it's on the **24 V power (V+/V−)** or the **motor connector**
+> (a phase or the Molex). That's where to chase the faux-contact (continuity test while flexing). See
+> [../history/diagnostics.md](../history/diagnostics.md) and the `amr-left-wheel-faux-contact` memo.
 
 ## Grounding
 All grounds must be common: **Teensy GND ↔ driver COM**. A floating COM was a real source of noise

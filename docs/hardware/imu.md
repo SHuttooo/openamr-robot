@@ -16,10 +16,15 @@ heading (yaw) estimation for navigation.
 | `WHO_AM_I` (reg 0x75) | **0x70** (an MPU6050 would return 0x68) |
 | Magnetometer | none (MPU6500 has no mag; the MPU9250 would) |
 
-## Communication (I²C → Teensy)
-- `SDA = pin 18`, `SCL = pin 19` (Teensy 4.0 default `Wire`).
+## Communication (I²C → Teensy) — wiring VERIFIED 2026-06-19
+- `SDA = pin 18`, `SCL = pin 19` (Teensy 4.0 default `Wire`) — confirmed on the board.
+- **Supply = 3.3 V** (measured), `AD0 = GND` → address **0x68**, `GND` common with the Teensy.
 - The Teensy is the I²C master; the IMU answers at 0x68.
 - The firmware reads acceleration and rotation rate; it publishes `sensor_msgs/Imu` on **`/imu/data`**.
+
+> ✅ **No level-shift issue here** (unlike the encoders): the GY-521 board runs on **3.3 V**, so its
+> on-board I²C pull-ups pull to 3.3 V → SDA/SCL never exceed 3.3 V → safe for the Teensy 4.0.
+> Unused pins: `XCL`, `XDA` (auxiliary I²C), `INT` (data-ready interrupt).
 
 ## Firmware driver — the fix
 The linorobot2 **MPU6050** driver checks `WHO_AM_I == 0x68` and **rejects** our chip (which returns 0x70)

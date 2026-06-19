@@ -1,15 +1,32 @@
 # Power & electrical safety
 
-*Last updated: 2026-06-18.*
+*Last updated: 2026-06-19.*
 
-## Power architecture
+## Power architecture — VERIFIED 2026-06-19
+```
+Battery 24V ──┐
+              ├──(parallel)──► V+ / V−  of BOTH drivers   (marron = V+, bleu = V−)
+Mains 24V  ───┘
+              └──(parallel)──► DC-DC 24V→5V ──► Raspberry Pi ──USB──► Teensy ──► IMU + encoders (5V)
+```
 | Element | Supply |
 |---|---|
-| Motors / drivers | **24 V DC** (`DC+ / DC−` on each driver, with a fuse) |
-| 24 V source | **battery pack** (lead-acid, see below) — or an **AC/DC converter** (230 V mains) for bench tests |
-| Teensy | powered over **USB** from the Pi (5 V → 3.3 V on board) |
-| Raspberry Pi | its own supply (USB-C, 5 V) |
+| Motors / drivers | **24 V DC** on `V+ / V−` of each driver. Wire colors: **marron = V+, bleu = V−** (confirmed) |
+| 24 V source | **battery pack** (lead-acid) **or** an **AC/DC converter** (230 V mains) — wired **in parallel** to the same 24 V bus |
+| Raspberry Pi | **DC-DC 24 V→5 V** buck from the 24 V bus |
+| Teensy | powered over **USB** from the Pi (5 V) |
+| **IMU + encoders** | **5 V from the Teensy** (VUSB pin) → see ⚠️ encoder overvoltage in [encoders.md](encoders.md) |
 | LiDAR | powered over its USB (CP2102 adapter) from the Pi |
+
+## 🔴 Safety gaps found (2026-06-19) — to fix
+1. **No fuse on the battery.** A lead-acid pack can deliver **hundreds of amps** into a short → fire /
+   burns / melted wires if a 24 V conductor touches ground. **Add a fuse (or breaker) on the battery `+`**,
+   as close to the terminal as possible. Size it to the motor stall current (TBD — note the value once chosen).
+2. **No battery-side disconnect** (only the mains has a switch). No fast hardware cut-off for the 24 V
+   battery. **Add a switch/disconnect — ideally an E-stop mushroom** — on the battery `+`.
+3. **Battery AND mains in parallel** on the same bus: if both are ever connected **at once**, the stiffer
+   source back-feeds the other (risk to the AC/DC, or uncontrolled battery charge). **Only one source at a
+   time** — a source selector switch would make this safe.
 
 ## Battery pack
 - **4 × 12 V lead-acid** batteries (the big black ones).

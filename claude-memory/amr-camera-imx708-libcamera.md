@@ -22,11 +22,16 @@ dit **« Unable to acquire a CFE instance »**. Noyau = `6.8.0-1057-raspi`.
 PAS le Camera Module 3 / IMX708 sur Pi 5 ; **seul le fork Raspberry Pi de libcamera** le gère.
 Problème connu Pi5 + Ubuntu 24.04 + ROS 2 Jazzy + Cam Module 3.
 
-**CORRECTIF identifié (pas encore appliqué)** : compiler le **fork RPi `raspberrypi/libcamera` +
-`christianrauch/camera_ros`** depuis les sources dans un workspace colcon dédié (overlay, sans virer les
-paquets apt). Guide exact : github.com/erykpawelek/libcamera_ros2_setup. Deps : g++/cmake/meson/ninja/
-pybind11-dev/python3-colcon-meson + libs. ~20-40 min de build sur le Pi. Topics attendus :
-`/camera/image_raw` (+ /compressed) + `/camera/camera_info`. Visu : `rqt_image_view` sur Ubuntu.
+**CORRECTIF ✅ APPLIQUÉ** : fork RPi `raspberrypi/libcamera` + `christianrauch/camera_ros` compilés dans
+`~/camera_ws` (overlay). Caméra fonctionnelle, vérifiée par snapshot. Topics : `/camera/image_raw`
+(+ /compressed) + `/camera/camera_info`. Lancer : sourcer `~/camera_ws/install/setup.bash` puis camera_node.
 
-Montage caméra (doc) : x≈0.415 (8 cm devant le lidar), y=0, ~0.175 m du sol. À calibrer (damier) avant
-tout AprilTag/docking. Voir [[amr-real-bringup]], [[pi-ssh-access]].
+**CALIBRATION ✅ FAITE 2026-06-19** : damier 9×12 carrés (8×11 coins), 30 mm, 87 vues. Résultat 1280×720 :
+fx≈1415,7 fy≈1415,1 cx≈629,3 cy≈366,4 ; distorsion plumb_bob [0,0038, 0,217, ~0, ~0, 0]. Sauvée dans
+**repo scripts/camera_info.yaml + Pi ~/camera_info.yaml** ; bring-up la charge via `camera_info_url`.
+⚠️ **La résolution DOIT matcher la calib** → caméra passée en **1280×720** dans le bring-up (le mode 16:9
+recadre le capteur 4:3 → pas un simple ×2 du 480p). Recette de recalibration (republish compressé→raw
+local + cameracalibrator) : cf docs/hardware/camera.md.
+⚠️ Image **tournée ~90°** (caméra montée de côté) + peut-être pas parallèle au sol → à corriger dans le
+**TF extrinsèque `camera_link`** (roll/pitch/yaw) avant le docking. Montage : x≈0.415, y=0, ~0.175 m du sol.
+Voir [[amr-pi-ros-commands]].

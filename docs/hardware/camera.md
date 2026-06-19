@@ -2,8 +2,9 @@
 
 *Last updated: 2026-06-18.*
 
-> **Status: WORKING.** The camera streams to ROS (`/camera/image_raw` + `/camera/camera_info`).
-> Still TODO: intrinsic calibration (checkerboard) before any AprilTag / vision docking.
+> **Status: WORKING + CALIBRATED (2026-06-19).** The camera streams to ROS (`/camera/image_raw` +
+> `/camera/camera_info`), and the intrinsics are now calibrated (checkerboard) → `camera_info` publishes
+> real K + distortion. See "Intrinsic calibration" below.
 
 ## Overview
 | | |
@@ -68,8 +69,31 @@ before launching. Verified working at both 1280×720 and 640×480 `bgr8` on `/ca
 | `/camera/image_raw/compressed` | `sensor_msgs/msg/CompressedImage` | `camera_optical_frame` |
 | `/camera/camera_info` | `sensor_msgs/msg/CameraInfo` | `camera_optical_frame` |
 
-> Note: `camera_info` is currently **uncalibrated** (default/empty matrices, a warning is logged).
-> Calibrate before any metric vision (see TODO).
+> ✅ `camera_info` is now **calibrated** (2026-06-19) — loaded via `camera_info_url` (see below).
+
+## Intrinsic calibration (done 2026-06-19)
+Calibrated with a **9×12-square (8×11 inner corners) checkerboard, 30 mm squares**, using
+`camera_calibration cameracalibrator` on the Ubuntu PC (87 views). Result (1280×720):
+`fx≈1415.7, fy≈1415.1, cx≈629.3, cy≈366.4`; distortion (plumb_bob) `[0.0038, 0.217, ~0, ~0, 0]`.
+Saved to **`scripts/camera_info.yaml`** (repo) and **`~/camera_info.yaml`** (Pi); the bring-up loads it via
+`camera_info_url:=file:///home/botshare/camera_info.yaml`.
+
+> ⚠️ **Resolution must match the calibration**: it was done at **1280×720**, so the camera now runs at
+> **1280×720** in the bring-up (intrinsics are resolution-dependent, and the 16:9 mode crops the 4:3 sensor
+> — not a simple scale of 640×480). To run at 640×480, **recalibrate** at that resolution.
+> The `camera name ... does not match narrow_stereo` warning is harmless (the calibration still loads).
+
+### How to recalibrate (the working recipe)
+WiFi can't carry the raw image → republish the **compressed** stream to a **local** raw topic, then point
+the calibrator at the local topic (two terminals on Ubuntu, Cyclone + domain 0):
+```bash
+# T1: compressed (over WiFi) -> local raw
+ros2 run image_transport republish --ros-args -p in_transport:=compressed -p out_transport:=raw \
+  -r in/compressed:=/camera/image_raw/compressed -r out:=/camera_local
+# T2: calibrator on the LOCAL topic
+ros2 run camera_calibration cameracalibrator --size 8x11 --square 0.030 --ros-args -r image:=/camera_local
+```
+Move the board to fill X/Y/Size/Skew → CALIBRATE → SAVE (writes `/tmp/calibrationdata.tar.gz`).
 
 ## Mounting (measured) & TF
 Physical position relative to `base_link` (center of the wheel axle):
@@ -115,8 +139,9 @@ Needs `ros-jazzy-rqt-image-view` + `ros-jazzy-image-transport-plugins` on Ubuntu
 Do **not** add a raw Image display in RViz over WiFi (it lags everything).
 
 ## TODO
-1. **Calibrate** the camera (checkerboard → real `camera_info` matrices) — required before AprilTag/docking.
-2. Fine-tune autofocus (the `dw9807` AF control logs minor warnings; functional but to configure).
-3. Refine the camera mount orientation in the URDF.
+1. ✅ **Calibrate** the camera — done 2026-06-19 (see "Intrinsic calibration" above).
+2. **Camera mount orientation**: the image is rotated ~90° (camera mounted sideways) and possibly tilted
+   (not parallel to the ground) → refine the **`camera_link` extrinsic TF** (roll/pitch/yaw) before docking.
+3. Fine-tune autofocus (the `dw9807` AF control logs minor warnings; functional but to configure).
 
 (Reference: "Camera commissioning" in `~/openamr_hardware_bringup_guide/README_OPENAMR_HARDWARE_BRINGUP.md`.)

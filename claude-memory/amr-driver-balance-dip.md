@@ -22,12 +22,22 @@ Tuning drivers ZBLD C20-120L2R (2026-06-19), sur **alim secteur**, roues en l'ai
 réglages de pot **se noient dans le bruit** (« j'ai l'impression que ça change rien »). Pour voir fin :
 tester à **PWM plus élevé** (ex. 400 → plus de rpm → quantif moins gênante).
 
-**Piste DIP SW1 (à tester demain)** : SW1 = boucle ouverte/fermée du driver. Actuellement **SW1 ON** (le
-driver régule en interne via les Hall) → **double boucle** avec le PID Teensy → peut amplifier les
-oscillations. Tester **SW1 dans l'autre position** (driver en boucle ouverte, seul le PID Teensy régule)
-sur les **2 drivers identiquement** (24 V coupé) → voir si le tangage baisse. DIP actuels : SW1+SW2 ON,
-SW3-6 OFF (SW2=AI2 source vitesse, SW4/5=paires de pôles, SW6=RS485). ⚠️ Tableau = interprétation projet,
-pas le datasheet officiel — vérifier le datasheet avant de toucher SW4/SW5 (paires de pôles).
+**DIP — analyse + config cible (audit câblage 2026-06-19).** Fonctions (sérigraphie driver) : SW1=boucle
+ouverte/fermée, SW2=source vitesse (AI1 pot interne / AI2 externe), SW3=secondaire (sans effet ici),
+SW4+SW5=**paires de pôles** (2/3/4/5, **utile QUE en boucle fermée**), SW6=terminaison RS485.
+
+🔶 **Défaut trouvé** : moteur = **P=5** (plaque : Z4BLD60-24GN-30S, P=5), mais **SW4/SW5 OFF/OFF = 2 paires**
+→ en boucle fermée le driver calcule la vitesse ~2,5× faux → mauvaise régulation (contribue au tangage,
+pot VAR peu réactif). ⚠️ Mapping ON/OFF→pôles lu sur photo floue (ON/ON supposé = 5) → confirmer avant.
+
+**Quel correcteur ? → le PID Teensy est le meilleur** (lit l'AS5040 1024 cnt/rev = roue, fin, réglable
+±2%, alimente /odom ; le driver lit l'arbre moteur via Hall grossiers, opaque). **Reco : driver en boucle
+ouverte (SW1=OFF)** = Teensy seul maître, supprime la double boucle + rend les pôles sans effet. Plan B si
+à-coups basse vitesse : revenir SW1=ON **avec SW4/SW5=ON/ON (5 paires)** = vraie cascade.
+
+**CONFIG CIBLE (2 drivers identiques, 24 V coupé) : `SW1 OFF · SW2 ON · SW3 OFF · SW4 ON · SW5 ON · SW6 OFF`.**
+Changements depuis l'état actuel (SW1+SW2 ON, reste OFF) : **SW1→OFF, SW4→ON, SW5→ON**. Cf
+docs/hardware/motors-drivers.md + [[amr-encoder-5v-overvoltage]].
 
 Outils de test réutilisables (sur Ubuntu, en Cyclone domain 0) : `/tmp/ol20.py` (boucle ouverte 20s
 stream G/D), `/tmp/pwm_step.py` (boucle fermée PWM+rpm), `/tmp/forward50.py` (avance Xcm boucle fermée

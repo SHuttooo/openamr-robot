@@ -123,9 +123,52 @@ that the **PID, not "the author's gains," was the lever**. ⚠️ Two gotchas: (
 `config/lino_base_config.h`, **not** `custom/dev_config.h`; (2) flashing via `-s` is timing-flaky — the
 **reliable method is the Teensy's physical button → HalfKay → `-w`**. See [../firmware/control-loop-pid.md](../firmware/control-loop-pid.md).
 
-## 7. Still open / next
-- **Geometry**: real robot Ø0.2 / separation 0.45 (sim uses 0.22 / 0.4075) — calibrate odometry; adjust URDF.
+## 7. Session 2026-06-19 — wiring/component audit + validation
+
+A full wiring + component audit (reading every label, cross-checking the firmware pins, fetching
+datasheets) plus on-robot validation tests. Method: read the silkscreen/nameplates, confirm against
+`lino_base_config.h`, then test motors/encoders via `/debug/openloop` (open loop, PID bypassed) and
+`/cmd_vel` (closed loop). Comparing **encoder counts** (exact) rather than rpm (quantized ~2.9 rpm).
+
+### Components identified (with datasheets → [../hardware/components-bom.md](../hardware/components-bom.md))
+Teensy **4.0** (i.MX RT1062, confirmed by the big QFN chip + the `--mcu=TEENSY40` flash working), drivers
+**ZBLD.C20-120L2R** (ZD), motors **ZD Z4BLD60-24GN-30S** (60 W, 24 V, 3.8 A, 3000 rpm, **P=5 pole pairs**,
+~30:1 gearbox), encoders **AMS AS5040** (1024 cnt/rev, marking "AS5040 AB 2.2"), IMU **MPU-6500**, battery
+**DM12-7S** (12 V 7 Ah). Driver signal terminals confirmed: only `VAR/AI2, FWD/DI1, REV/DI2, COM` wired,
+mapping cleanly to the firmware pins (M1: 1/20/21, M2: 5/6/8).
+
+### Two defects found and fixed
+- 🔴→✅ **Encoder overvoltage**: AS5040 powered at 5 V → A/B outputs ~4 V into the 3.3 V (non-5 V-tolerant)
+  Teensy pins. **Fixed**: moved the encoder supply to **3.3 V** (AS5040 supports it). Verified A/B now
+  ~3.3 V; counting clean. See [../hardware/encoders.md](../hardware/encoders.md).
+- 🔶→✅ **Pole-pair DIP wrong**: motor is P=5 but SW4/SW5 were OFF/OFF (=2). **Corrected to ON/ON (=5)**.
+  Also switched the driver to **open loop (SW1 OFF)** so the Teensy PID is the sole controller (it reads
+  the fine AS5040 at the wheel, vs the driver's coarse Hall at the motor shaft). See
+  [../hardware/motors-drivers.md](../hardware/motors-drivers.md).
+
+### Safety gaps found (to fix) — [../hardware/power.md](../hardware/power.md)
+**No fuse** on the battery, **no battery-side disconnect/E-stop**, and battery+mains share the 24 V bus
+in parallel (only one source at a time).
+
+### Validation tests (3 repeated runs, driver open-loop + Teensy PID)
+- ✅ **Left wheel stable**: no dropout across 3 sustained runs (counts strictly monotonic). The
+  intermittent faux-contact did not reappear (keep monitoring — it's intermittent by nature).
+- ✅ **Deadband ~PWM 100** (no motion below); roughly **linear** above: PWM 200→~17 rpm, 400→~40, 600→~65.
+- ✅ **Direction**: reverse gives negative rpm and decrementing counts both sides.
+- 🔶 **Residual L/R asymmetry ~6–9 %** in open loop (right faster) — reproducible. The **VAR pot is inert**
+  to fix it (SW2=ON → speed from AI2, not the pot; confirmed no change after turning it).
+- ✅ **Teensy PID equalizes** the wheels in closed loop: counts L vs R within **~0.2 %** at 0.15 m/s → good
+  straight-line driving. Odometry scale consistent (0.15 m/s ↔ 14.3 rpm ↔ Ø0.2 wheel).
+- ⚠️ **Odom instantaneous velocity is noisy at low speed** (±10 %: 0.138–0.169 m/s read for 0.15 cmd) due
+  to the ~2.9 rpm rpm-quantization at 50 Hz. Counts are exact → no cumulative distance error; better at
+  higher speed. Worth noting for Nav2 tuning.
+
+## 8. Still open / next
+- **Geometry/odometry**: scale now validated as consistent (0.15 m/s ↔ 14.3 rpm). Still adjust the URDF to
+  Ø0.2 / separation 0.45 and do a 1 m physical check for the absolute factor.
+- **Power safety**: add a **fuse** + **battery disconnect/E-stop** (see §7).
+- **Encoder protection**: 3.3 V supply fix done; optional series-R/level-shifter if ever back on 5 V.
 - **Camera calibration** (checkerboard) — required before AprilTag / vision docking.
-- **Right-wheel overshoot / startup veer**: balance the right driver pots or add firmware feedforward.
-- **Nav2 + AMCL**: build `openamr-platform-sw` for autonomous navigation + docking.
-- **Battery telemetry**: still no software voltage readout (would catch a sagging pack early).
+- **Nav2 + AMCL** on a fresh SLAM map; then docking.
+- **Battery telemetry**: still no software voltage readout (lead-acid sags under load).
+- **Completeness**: read the LiDAR model, DC-DC model, AC/DC converter, Pi RAM, gearbox ratio (`4GN__K`).
