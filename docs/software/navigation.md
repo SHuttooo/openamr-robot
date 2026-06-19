@@ -119,10 +119,21 @@ The default config used `robot_radius: 0.22` (a 0.44 m circle). The **real robot
 rectangle with rounded corners**, and `base_link` (wheel axle) is **not centered**: the **front is 0.415 m**
 ahead of base_link (lidar at x=0.335 + 8 cm to the front edge), the **rear is −0.365 m**. With the
 too-small circle, Nav2 planned paths too tight and the robot **clipped obstacles**. The correct footprint
-(octagon ≈ rounded rectangle) is now set in both costmaps:
+(octagon ≈ rounded rectangle) — true hull:
 ```yaml
+# true robot hull (0.78 × 0.58, base_link not centered)
 footprint: "[[0.415, 0.19], [0.415, -0.19], [0.315, -0.29], [-0.265, -0.29], [-0.365, -0.19], [-0.365, 0.19], [-0.265, 0.29], [0.315, 0.29]]"
 ```
+**Now PADDED by +0.12 m (2026-06-20)** to enforce a *hard* ~12 cm clearance — DWB checks the footprint
+against the local costmap every cycle, so a padded footprint = a hard "never get within 12 cm of an
+obstacle the lidar sees" rule (much stronger than inflation, which is only a soft planning cost). This is
+the chosen mechanism for the user's "avoid obstacles within 10–20 cm of the robot's shape" requirement:
+```yaml
+# padded +0.12 m — set in BOTH costmaps (local + global), persisted in nav2_params.yaml
+footprint: "[[0.535, 0.31], [0.535, -0.31], [0.435, -0.41], [-0.385, -0.41], [-0.485, -0.31], [-0.485, 0.31], [-0.385, 0.41], [0.435, 0.41]]"
+```
+⚠️ A padded footprint makes the robot "bigger" → in a **very tight space** Nav2 may fail to find a path.
+If it gets boxed in, reduce the pad (e.g. +0.10) or clear the space.
 
 ### Planner / controller / costmap (current real-robot tuning)
 - **Planner**: `SmacPlanner2D` (NavFn also works and is faster; Smac warns it is slow with a non-circular
@@ -132,8 +143,9 @@ footprint: "[[0.415, 0.19], [0.415, -0.19], [0.315, -0.29], [-0.265, -0.29], [-0
   (`rotate_to_heading` never converged; with it off, it drove but couldn't satisfy the yaw goal) → reverted
   to DWB, which reliably reaches goals. (To reduce DWB weave later: raise PathAlign/PathDist, lower
   vtheta_samples — without breaking what works.)
-- **Costmap**: `inflation_radius` ≈ 0.15 (soft planning margin; tune to taste), `obstacle_min_range: 0.10`
-  (see gotcha #5), goal checker `xy_goal_tolerance 0.35`.
+- **Costmap**: `inflation_radius` = **0.20** (soft planning margin, `cost_scaling_factor 3.0`),
+  `obstacle_min_range: 0.0` (see gotcha #5 — `scan_body_filter.py` already removes the robot body, so NO
+  min range is needed), goal checker `xy_goal_tolerance 0.35`.
 - **`config/nav2_params_real.yaml`** in this repo is a snapshot of the working config (the live file is
   `~/openamr-platform-sw/ros2/src/openamrobot_nav2/config/nav2_params.yaml`).
 - Most of these are **dynamically settable** without a restart, e.g.:
@@ -146,12 +158,19 @@ footprint: "[[0.415, 0.19], [0.415, -0.19], [0.315, -0.29], [-0.265, -0.29], [-0
   *can* traverse it. It does NOT, by itself, stop the robot from touching things.
 - **Not touching obstacles** comes from the **controller checking the real footprint** against the **local
   costmap** in real time (which needs `obstacle_min_range` small enough to see close obstacles — #5).
-- For a HARD "never touch" guarantee: ✅ **DONE — the Collision Monitor is active** (Option B). It sits in
-  the cmd_vel chain (`controller → /cmd_vel_raw → collision_monitor → /cmd_vel`), uses a `FootprintApproach`
-  zone on the **real footprint** + `/scan_filtered`, and **stops the robot before any part touches** an
-  obstacle — independent of inflation (which is now low, 0.10, just for planning). Launch:
-  `ros2 launch /home/botshare/collision_monitor_launch.py` (config in `nav2_params.yaml` `collision_monitor:`,
-  `time_before_collision: 0.8`). Alternative not used: (A) padding the footprint.
+- For a HARD margin ("keep ≥12 cm from any obstacle the lidar sees"): ✅ **the footprint is PADDED by
+  +0.12 m** (see the footprint section above). DWB checks the padded footprint against the local costmap
+  every cycle → it refuses to bring the padded hull into a lethal cell → ~12 cm real clearance. This is
+  simpler and more robust than the Collision Monitor (which, when tried, stopped the robot entirely).
+  Combine with inflation 0.20 so the *planner* also routes ~20 cm away. Net effect = the 10–20 cm margin
+  the user asked for.
+- ⚠️ **2D-lidar height limit (no software fix)**: the lidar is at **~18 cm**; it sees only a horizontal
+  slice. An obstacle **shorter than ~18 cm** (low box, table foot, cable, threshold) is **invisible to the
+  costmap** → neither inflation nor a padded footprint can avoid it (there's nothing in the costmap to
+  avoid). Head-on hits ("de plein fouet") on a low object are this, not a tuning problem. Fixes require
+  hardware: a lower sensor, a depth camera tilted down, or a physical bumper. Test avoidance with obstacles
+  **taller than ~20 cm**.
+- (Collision Monitor, Option B, remains available but is NOT active — it stopped the robot when tried.)
 
 ### Gotchas we hit (read these!)
 1. **Process duplicates from repeated launches** → multiple agents/lidars/EKFs fighting (serial/USB/TF
@@ -169,8 +188,8 @@ footprint: "[[0.415, 0.19], [0.415, -0.19], [0.315, -0.29], [-0.265, -0.29], [-0
    last (often 0) command at 10 Hz → it **overrides Nav2** → robot won't move. **Kill teleop before Nav2.**
 5. **`obstacle_min_range` too high blinds close obstacles**: it was `0.35` → obstacles within 0.35 m of the
    lidar were dropped, so they **vanished from the costmap as the robot approached → it drove into them**.
-   Set **`obstacle_min_range: 0.10`** (the `scan_body_filter.py` already removes the robot's own body, so a
-   small min range is safe).
+   Set **`obstacle_min_range: 0.0`** — the `scan_body_filter.py` already removes the robot's own body, so NO
+   min range is needed (don't re-introduce one).
 6. **SmacPlanner2D slow with a non-circular footprint + small inflation** (it warns explicitly). If
    planning is sluggish, switch to **NavFn** (`nav2_navfn_planner::NavfnPlanner`) — much faster — or raise
    inflation. ⚠️ NavFn treats the robot as a point, so it needs inflation ≈ the robot's inscribed radius
@@ -178,6 +197,18 @@ footprint: "[[0.415, 0.19], [0.415, -0.19], [0.315, -0.29], [-0.265, -0.29], [-0
 7. **"Failed to make progress"** = the controller isn't translating (it aborts after 30 s). We saw it with
    RPP stuck rotating, and when paths were infeasible (too-low inflation for the big robot). Check the robot
    actually moves (`/cmd_vel` non-zero linear), and that inflation/footprint give feasible paths.
+8. **EMPTY costmaps → robot navigates BLIND → hits everything (2026-06-20, big one)**: if `navigation_launch`
+   is started **before AMCL has published `map→odom`** (no 2D Pose Estimate yet), the costmaps' lifecycle
+   **aborts** ("transform from base_link to map did not become available"). If you then **activate the nodes
+   manually** (`ros2 lifecycle set ... activate`), they come up **mis-initialized**: the static layer never
+   loads the map and the obstacle layer never subscribes to the scan → **both costmaps report 0 occupied
+   cells** → nothing to avoid → the robot drives straight into obstacles. **Fix: launch navigation only
+   AFTER `map→odom` exists** (set the 2D Pose Estimate first, or wait for AMCL), then let the
+   `lifecycle_manager` activate cleanly. Verify: `ros2 topic echo /global_costmap/costmap --field data` must
+   show non-zero/non-(-1) cells (we got 36041 global / 3602 local once fixed). Do **not** hand-activate
+   lifecycle nodes — relaunch instead.
+9. **"Robot won't move" was almost always 24 V power** (battery off/discharged), not Nav2. Prove it with a
+   direct `/debug/openloop` rpm test before debugging the nav stack.
 
 ### Verify it's healthy
 ```bash
@@ -186,7 +217,13 @@ ros2 lifecycle get /controller_server    # active
 ros2 run tf2_ros tf2_echo map odom       # AMCL publishes map->odom (after a 2D Pose Estimate)
 ros2 topic info /scan_filtered           # publisher count == 1 (else kill the dup filter)
 ros2 topic hz /local_costmap/costmap     # local costmap updating
+# CRITICAL: costmaps must actually contain obstacles (else robot is blind — gotcha #8):
+ros2 topic echo /global_costmap/costmap --field data --once | tr ',' '\n' | grep -vE '^0$|^-1$|^$' | wc -l  # >0 (map loaded)
+ros2 topic echo /local_costmap/costmap  --field data --once | tr ',' '\n' | grep -vE '^0$|^-1$|^$' | wc -l  # >0 with obstacles in view
 ```
+
+**Maps**: `~/maps/coin2.*` (original) and **`~/maps/coin_ok.*`** (re-saved 2026-06-20, current good map);
+`coin2.{pgm,yaml}.bak` are backups. The repo `maps/` dir is gitignored (maps live on the Pi).
 
 ## Docking (real robot) — plan & status
 

@@ -144,12 +144,12 @@ local_costmap:
       width: 3
       height: 3
       resolution: 0.05
-      footprint: "[[0.415, 0.19], [0.415, -0.19], [0.315, -0.29], [-0.265, -0.29], [-0.365, -0.19], [-0.365, 0.19], [-0.265, 0.29], [0.315, 0.29]]"
+      footprint: "[[0.535, 0.31], [0.535, -0.31], [0.435, -0.41], [-0.385, -0.41], [-0.485, -0.31], [-0.485, 0.31], [-0.385, 0.41], [0.435, 0.41]]"
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.10
+        inflation_radius: 0.20
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -169,7 +169,7 @@ local_costmap:
           raytrace_max_range: 3.0
           raytrace_min_range: 0.10
           obstacle_max_range: 2.5
-          obstacle_min_range: 0.10
+          obstacle_min_range: 0.0
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -183,7 +183,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       transform_tolerance: 0.6
-      footprint: "[[0.415, 0.19], [0.415, -0.19], [0.315, -0.29], [-0.265, -0.29], [-0.365, -0.19], [-0.365, 0.19], [-0.265, 0.29], [0.315, 0.29]]"
+      footprint: "[[0.535, 0.31], [0.535, -0.31], [0.435, -0.41], [-0.385, -0.41], [-0.485, -0.31], [-0.485, 0.31], [-0.385, 0.41], [0.435, 0.41]]"
       resolution: 0.05
       track_unknown_space: false
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
@@ -203,11 +203,11 @@ global_costmap:
           raytrace_max_range: 3.0
           raytrace_min_range: 0.10
           obstacle_max_range: 2.5
-          obstacle_min_range: 0.10
+          obstacle_min_range: 0.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.10
+        inflation_radius: 0.20
       always_send_full_costmap: False
 
 map_server:
