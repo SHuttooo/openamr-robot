@@ -17,14 +17,18 @@ On the Pi (one clean sequence; see details + troubleshooting below):
 ros2 launch /home/botshare/openamr_real_bringup.launch.py
 # 2. localization (map_server + AMCL on the saved map)
 ros2 launch openamrobot_nav2 localization_launch.py map:=/home/botshare/maps/coin2.yaml use_sim_time:=false
-# 3. navigation (planner, controller, bt_navigator, ...)
+# 3. navigation (planner, controller, bt_navigator, ...). The controller now outputs /cmd_vel_raw
+#    (remapped) and the duplicate scan filter was REMOVED from this launch (no more pkill needed).
 ros2 launch openamrobot_nav2 navigation_launch.py use_sim_time:=false
-# 4. kill the DUPLICATE scan filter that navigation_launch starts (see gotcha #2)
-pkill -9 -f scan_to_scan_filter_chain
+# 4. Collision Monitor (safety): /cmd_vel_raw -> [stop if footprint would hit] -> /cmd_vel
+ros2 launch /home/botshare/collision_monitor_launch.py    # repo: launch/collision_monitor_launch.py
 # 5. goal relay: RViz "2D Goal Pose" (/goal_pose) -> NavigateToPose action (see gotcha #3)
 python3 ~/goal_relay.py   # repo: scripts/goal_relay.py
 ```
 Then in RViz (dev PC): **2D Pose Estimate** (localize) → **2D Goal Pose** (navigate). **Not** "Nav2 Goal".
+> cmd_vel chain: `controller_server → /cmd_vel_raw → collision_monitor → /cmd_vel → Teensy`. The
+> Collision Monitor (`FootprintApproach`, source `/scan_filtered`) projects the real 78×58 footprint
+> forward and **stops the robot before any part touches** an obstacle (the hard "never touch the violet").
 
 ## The package: `openamr-platform-sw`
 Cloned at `~/openamr-platform-sw`, **built on the Pi** (2026-06-18). ROS 2 packages (`ros2/src/`): ROS 2 packages (`ros2/src/`):
@@ -142,18 +146,21 @@ footprint: "[[0.415, 0.19], [0.415, -0.19], [0.315, -0.29], [-0.265, -0.29], [-0
   *can* traverse it. It does NOT, by itself, stop the robot from touching things.
 - **Not touching obstacles** comes from the **controller checking the real footprint** against the **local
   costmap** in real time (which needs `obstacle_min_range` small enough to see close obstacles — #5).
-- For a HARD "never touch" guarantee, two clean options (TODO/next): **(A)** pad the footprint by a few cm
-  so the controller keeps that clearance reactively with low inflation; **(B)** run the **Collision Monitor**
-  node (stop-zone = footprint + margin → stops instantly if a scan point enters it).
+- For a HARD "never touch" guarantee: ✅ **DONE — the Collision Monitor is active** (Option B). It sits in
+  the cmd_vel chain (`controller → /cmd_vel_raw → collision_monitor → /cmd_vel`), uses a `FootprintApproach`
+  zone on the **real footprint** + `/scan_filtered`, and **stops the robot before any part touches** an
+  obstacle — independent of inflation (which is now low, 0.10, just for planning). Launch:
+  `ros2 launch /home/botshare/collision_monitor_launch.py` (config in `nav2_params.yaml` `collision_monitor:`,
+  `time_before_collision: 0.8`). Alternative not used: (A) padding the footprint.
 
 ### Gotchas we hit (read these!)
 1. **Process duplicates from repeated launches** → multiple agents/lidars/EKFs fighting (serial/USB/TF
    conflicts → everything flaky). Always do a **clean kill + single launch**. Symptom: `pgrep` shows 2-3 of
    a node (note: `ros2 run` adds a wrapper process, so pgrep over-counts by 1 — check `ps -ef` to be sure).
-2. **Duplicate `/scan_filtered`**: `navigation_launch.py` starts its OWN `laser_filters` scan filter
-   (`scan_to_scan_filter_chain`, also named `scan_body_filter`) that **conflicts** with the bring-up's
-   `scan_body_filter.py` → 2 publishers on `/scan_filtered` → bad obstacle data. **Kill it every time**:
-   `pkill -9 -f scan_to_scan_filter_chain`. (Permanent fix TODO: remove it from `navigation_launch.py`.)
+2. **Duplicate `/scan_filtered`** (FIXED): `navigation_launch.py` used to start its OWN `laser_filters`
+   scan filter (`scan_to_scan_filter_chain`) that conflicted with the bring-up's `scan_body_filter.py`
+   → 2 publishers → bad obstacle data. **Now removed from `navigation_launch.py`** (permanent). If you ever
+   see 2 publishers on `/scan_filtered` again: `pkill -9 -f scan_to_scan_filter_chain`.
 3. **RViz "Nav2 Goal" does nothing**; use **"2D Goal Pose"**. The `nav2_rviz_plugins/GoalTool` needs the
    Navigation2 panel to forward the goal; without it, it publishes nothing usable. The default **"2D Goal
    Pose"** publishes `/goal_pose`, which our **`goal_relay.py`** node forwards to the `navigate_to_pose`

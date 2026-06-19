@@ -16,9 +16,18 @@ Pré-requis : [[amr-pi-ros-commands]] (SSH, env Cyclone, agent). Carte : `~/maps
 1. `ros2 launch /home/botshare/openamr_real_bringup.launch.py`  (agent, lidar, scan filter, EKF, caméra, TF)
 2. `ros2 launch openamrobot_nav2 localization_launch.py map:=/home/botshare/maps/coin2.yaml use_sim_time:=false`
 3. `ros2 launch openamrobot_nav2 navigation_launch.py use_sim_time:=false`
-4. `pkill -9 -f scan_to_scan_filter_chain`  ← TUER le filtre scan EN DOUBLE que navigation_launch relance
+   (controller sort sur **/cmd_vel_raw** ; filtre scan doublon RETIRÉ du launch → plus besoin de le tuer)
+4. `ros2 launch /home/botshare/collision_monitor_launch.py`  ← Collision Monitor (sécurité, voir plus bas)
 5. `python3 ~/goal_relay.py`  (repo scripts/goal_relay.py) ← relais /goal_pose → action navigate_to_pose
 Puis RViz (PC) : **2D Pose Estimate** (localiser) → **2D Goal Pose** (but). PAS « Nav2 Goal ».
+
+## COLLISION MONITOR (sécurité « ne touche jamais ») — ACTIF
+Chaîne : `controller → /cmd_vel_raw → collision_monitor → /cmd_vel → Teensy`. Le monitor (`FootprintApproach`,
+source `/scan_filtered`, empreinte réelle 78×58) **projette l'empreinte et arrête le robot avant tout
+contact**, indépendamment de l'inflation (qui est donc basse, 0.10, juste pour la planif). Config dans
+nav2_params `collision_monitor:` (cmd_vel_in `cmd_vel_raw`, `time_before_collision: 0.8`, min_range 0.10).
+Launch : `~/collision_monitor_launch.py` (repo launch/collision_monitor_launch.py). Le remap
+`cmd_vel→cmd_vel_raw` est dans le `remappings` partagé de navigation_launch.py.
 
 ## PIÈGES (chacun a coûté du temps)
 1. **Doublons de process** (agents/lidars/EKF en multiple, à force de relancer) → conflits série/USB/TF →
