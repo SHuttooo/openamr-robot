@@ -39,7 +39,7 @@ Key values for THIS robot (differ from upstream defaults):
 | `MOTOR_OPERATING_VOLTAGE` / `MOTOR_POWER_MAX_VOLTAGE` | `24` / `24` | |
 | `COUNTS_PER_REV1/2` | `1024` | encoder CPR |
 | `WHEEL_DIAMETER` | `0.2` | |
-| `LR_WHEELS_DISTANCE` | `0.45` | |
+| `LR_WHEELS_DISTANCE` | `0.46` | measured 2026-06-19 (was 0.45) |
 | `PWM_FREQUENCY` | `3000` | |
 | `MOTOR1_ENCODER_INV` / `MOTOR2_INV` | `true` / `true` | sign conventions |
 | `MOTOR1_PWM / IN_A / IN_B` | `1 / 20 / 21` | LEFT |

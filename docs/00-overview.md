@@ -72,7 +72,8 @@ The robot has **two computers** that share the work:
 |---|---|
 | Type | differential, 2 driven wheels |
 | Wheel diameter | **0.2 m** |
-| Wheel separation (left–right) | **0.45 m** |
+| Wheel separation (left–right) | **0.46 m** (measured 2026-06-19; `LR_WHEELS_DISTANCE`) |
+| Robot footprint | **0.78 × 0.58 m** rectangle, rounded corners (base_link offset: front 0.415 / rear −0.365) |
 | Motor voltage | **24 V** |
 | Encoders | 1024 counts/rev, quadrature A/B |
 

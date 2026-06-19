@@ -78,8 +78,15 @@ In the firmware:
 - ✅ Direction sign correct on both sides (forward → counts increase, measured speed positive).
 - ✅ Under power they read real motion cleanly (no electrical glitch/dropout).
 
-So the encoders are **healthy** — they were wrongly suspected early on; the real issues were elsewhere
-(driver tuning). See [history/diagnostics.md](../history/diagnostics.md).
+> 🔧 **Right encoder was MISALIGNED (found & fixed 2026-06-19).** The robot snaked ("drunk"). A constant-PWM
+> open-loop test **on the ground** (PID + driver loop bypassed) showed the right wheel oscillating wildly
+> (6–62 rpm) while the left was smooth — but it was smooth **in the air** → a load/vibration-dependent
+> fault. Cause: the right **AS5040 magnet was off-center** → erratic counts under load → the PID reacted →
+> snaking. **Re-centering the magnet fixed it.** (The AS5040 needs the diametric magnet well-centered over
+> the chip; check the field-strength indicator if available.) See [history/diagnostics.md](../history/diagnostics.md) §8.
+
+So the encoders are **healthy** when properly aligned. Tools to check counts live (Ubuntu, Cyclone domain 0):
+`scripts/encread.py` (angle by hand), `scripts/encpid.py` (per-wheel target/measured/error).
 
 ## Good to know / gotchas
 - ⚠️ **CPR vs wheel + gearbox (confirmed 30:1)**: the motors are **geared 30:1** (Z4BLD60-24GN-30S, see

@@ -163,12 +163,53 @@ in parallel (only one source at a time).
   to the ~2.9 rpm rpm-quantization at 50 Hz. Counts are exact → no cumulative distance error; better at
   higher speed. Worth noting for Nav2 tuning.
 
-## 8. Still open / next
-- **Geometry/odometry**: scale now validated as consistent (0.15 m/s ↔ 14.3 rpm). Still adjust the URDF to
-  Ø0.2 / separation 0.45 and do a 1 m physical check for the absolute factor.
+## 8. Session 2026-06-19 (cont.) — right encoder, gearbox, SLAM map, Nav2 + AMCL
+
+### Right wheel "drunk"/snaking → right ENCODER misaligned (root cause)
+After the wiring audit, the robot still snaked. Method (per-wheel, ground vs air): open-loop fixed PWM
+(`/debug/openloop`, PID + driver loop bypassed) **on the ground** showed the LEFT wheel smooth but the
+**RIGHT wheel oscillating wildly (6–62 rpm at constant PWM)** — yet it was smooth in the air that morning →
+a **load-dependent hardware fault**. Root cause found by the user: the **right AS5040 magnetic encoder was
+misaligned** (magnet off-center) → erratic counts under vibration/load → the PID reacted → snaking.
+Re-aligning it fixed the oscillation. *(Lesson: a constant-PWM open-loop test on the ground isolates a
+hardware fault from any control issue.)*
+
+### Odometry yaw + wheel separation
+Manual-turn ground-truth: 1 full physical turn → odom read **−350°** (≈2.8 % under); 10 turns → −3449°
+(≈4 % under, worse when spun fast = the gyro can't track fast hand-spins). At slow nav speeds the error is
+small. The **wheel separation measured 0.46 m** (config was 0.45) → set **`LR_WHEELS_DISTANCE 0.46`** and
+reflashed. Note: the wheel-odom yaw at 0.45 actually *over*-estimated by ~2 %; 0.46 corrects it. The small
+residual under-count is the gyro scale (minor; scan-matching/AMCL corrects in SLAM/nav).
+
+### SLAM map `coin2`
+Built cleanly once the right encoder was fixed + driving in **arcs** (`u`/`o`, never `j`/`l` in-place) at
+0.1 m/s. ⚠️ A featureless/symmetric cardboard enclosure makes the low-res scan-matcher drift — **add
+distinctive objects** as landmarks. Saved `coin2.{pgm,yaml,posegraph,data}` (also in repo `maps/`).
+
+### Lidar gotchas (recurring)
+- **Stuck `80008000` / operation timeout** after a hard kill mid-scan → **unplug/replug the USB**.
+- **Two `rplidar_composition` fighting one port** (from repeated launches) → timeout. Always **clean kill +
+  single launch**. (pgrep over-counts due to the `ros2 run` wrapper — verify with `ps -ef`.)
+
+### Nav2 + AMCL brought up and WORKING
+Full procedure + all the traps are in [../software/navigation.md](../software/navigation.md). The big ones:
+wrong **footprint** (circular 0.22 → real **0.78×0.58 rounded**, base_link offset front 0.415/rear −0.365);
+**duplicate scan filter** from `navigation_launch.py` (kill `scan_to_scan_filter_chain`); **teleop flooding
+`/cmd_vel`** (kill it); RViz **"Nav2 Goal" does nothing → use "2D Goal Pose"** + a **`goal_relay.py`**
+(`/goal_pose`→action); **`obstacle_min_range 0.35` blinded close obstacles → 0.10**; **DWB weaves** (RPP got
+stuck rotating → kept DWB); **inflation = soft planning cost**, not collision avoidance (that's the
+controller's real-time footprint check; hard guarantee = Collision Monitor / footprint padding — next).
+
+## 9. Still open / next
+- **Hard collision avoidance**: Collision Monitor (stop-zone = footprint+margin) or footprint padding, so
+  the robot never touches obstacles with low inflation (inflation alone is only a soft planning cost).
+- **DWB weave**: reduce the residual snaking (raise PathAlign/PathDist, lower vtheta_samples) without
+  breaking what works; or revisit a properly-tuned RPP.
+- **Nav2 launch hygiene**: edit `navigation_launch.py` to NOT start its duplicate scan filter; consider a
+  one-shot bring-up script (clean kill → bring-up → localization → navigation → kill dup → relay).
 - **Power safety**: add a **fuse** + **battery disconnect/E-stop** (see §7).
-- **Encoder protection**: 3.3 V supply fix done; optional series-R/level-shifter if ever back on 5 V.
-- **Camera calibration** (checkerboard) — required before AprilTag / vision docking.
-- **Nav2 + AMCL** on a fresh SLAM map; then docking.
+- **Wheel separation 0.46** flashed; **gyro scale** slightly under (minor) — optional firmware trim.
+- **Docking**: camera ✅ calibrated; needs AprilTags + the docking pipeline.
+- **robot_state_publisher + URDF** (optional; static TFs + footprint cover current needs).
 - **Battery telemetry**: still no software voltage readout (lead-acid sags under load).
 - **Completeness**: read the LiDAR model, DC-DC model, AC/DC converter, Pi RAM, gearbox ratio (`4GN__K`).
