@@ -25,7 +25,7 @@ import math
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy, HistoryPolicy
 
 FULL_MASK_SECTORS_DEG = [(-45.0, 49.0)]            # coque arriere : tout enleve (droite va a +49)
 CLOSE_MASK_SECTORS_DEG = [(-96.0, -73.0), (73.0, 96.0)]  # poteaux : seulement le proche
@@ -37,7 +37,10 @@ class ScanBodyFilter(Node):
         super().__init__("scan_body_filter")
         self.full = [(math.radians(a), math.radians(b)) for a, b in FULL_MASK_SECTORS_DEG]
         self.close = [(math.radians(a), math.radians(b)) for a, b in CLOSE_MASK_SECTORS_DEG]
-        self.pub = self.create_publisher(LaserScan, "/scan_filtered", qos_profile_sensor_data)
+        # Publier en RELIABLE : sert la costmap (reliable) ET AMCL/RViz (best_effort).
+        # En best_effort, la costmap (qui s'abonne reliable) ne recevait RIEN -> costmaps vides.
+        pub_qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE, history=HistoryPolicy.KEEP_LAST)
+        self.pub = self.create_publisher(LaserScan, "/scan_filtered", pub_qos)
         self.sub = self.create_subscription(LaserScan, "/scan", self.cb, qos_profile_sensor_data)
         self.get_logger().info(
             f"scan_body_filter actif | arriere(full)={FULL_MASK_SECTORS_DEG} | "

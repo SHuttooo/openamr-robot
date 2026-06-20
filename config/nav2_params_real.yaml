@@ -119,9 +119,10 @@ controller_server:
       trans_stopped_velocity: 0.25
       short_circuit_trajectory_evaluation: True
       stateful: True
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "ObstacleFootprint", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
       BaseObstacle.scale: 5.0
       BaseObstacle.inflate_cost: true
+      ObstacleFootprint.scale: 10.0    # teste TOUTE l'empreinte (pas juste le centre) -> gros robot non-circulaire n'avance plus dans un obstacle
       PathAlign.scale: 32.0
       PathAlign.forward_point_distance: 0.1
       GoalAlign.scale: 24.0
@@ -149,7 +150,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.20
+        inflation_radius: 0.15
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -206,8 +207,8 @@ global_costmap:
           obstacle_min_range: 0.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
-        inflation_radius: 0.20
+        cost_scaling_factor: 2.5      # global: gradient large -> chemin centre, ecarte des murs
+        inflation_radius: 0.40        # global (planif) >> local (0.15) : le plan tient compte de la taille du robot
       always_send_full_costmap: False
 
 map_server:
