@@ -1,6 +1,47 @@
-# Encoder velocity-ripple investigation (left wheel "PID oscillation")
+# Encoder velocity-ripple investigation + the motor velocity control chain
 
 *2026-06-29. Full record so the session isn't lost. Data: `docs/data/encoder_calib_*.json`.*
+*Sections 1–7 = the investigation (how we got here). The TL;DR below = the final, flashed result.*
+
+## TL;DR — the final velocity control chain (firmware, 50 Hz, per wheel)
+
+```
+                          ┌─────────────────── FEEDBACK (cleaned) ───────────────────┐
+                          │                                                          │
+  /cmd_vel ──► kinematics ──► (3) FEEDFORWARD ──┐                                    │
+   (m/s)       target_rpm      Kff·rpm+offset   │                                    │
+                                                ▼                                    │
+                                          ┌──────────┐   (4)PID   ┌──────┐  (5)      │
+                          measured_rpm ──►│  error   ├──► Kp/Ki/Kd├─► + ◄─┤ DITHER   │
+                                ▲         └──────────┘  +back-calc└──┬───┘ ±92@25Hz  │
+                                │                        anti-windup │    (<13rpm)   │
+                                │                                    ▼               │
+                                │                              constrain ──► PWM ──► MOTOR
+                                │                                                    │
+                                │   (2) ripple    (1) small-window         encoder ◄─┘
+                                └── table ◄─────── velocity estimator ◄──── counts
+                                    /CAL[angle]    Δcounts/Δt (12 counts)
+```
+
+Each block fixes ONE measured problem. Signal-flow order = the numbers:
+
+| # | Block | What it does | Why (the problem it kills) | Value |
+|---|---|---|---|---|
+| 1 | **Velocity estimator** | rpm = Δcounts/Δt over a fixed 12-count window | instant getRPM = ~1 count/sample below 5 rpm → ±70% noise | `VEL_WIN_COUNTS 12`, cap 200 ms |
+| 2 | **Ripple table** | `true = measured / CAL[counts mod 1024]` | decentered magnet → ±40% 2/rev fake ripple the PID chased | 36 bins, **runtime-loaded** |
+| 3 | **Feedforward** | `PWM = Kff·target + offset` (+ PID) | a pure PID makes the integral guess the holding PWM → overshoot that **grows with speed** | `KFF 7.87`, `FF_OFFSET 21` |
+| 4 | **PID** | Kp·e + Ki·∫e + Kd·de | trims the residual (Kp=disturbance/damping, Ki=drift, Kd=min) | `Kp 2.0 / Ki 0.10 / Kd 0.10` |
+| 4b | **Back-calc anti-windup** | bleeds the integral excess on saturation | high-speed (saturated) overshoot | in `pid.cpp` |
+| 5 | **Anti-stiction dither** | ±A flipped each tick (25 Hz), avg 0 | low-speed stick-slip limit cycle (0→9 rpm) | `DITHER 92`, only <13 rpm |
+| — | **R-gain** | scales right-wheel PWM | wheel asymmetry | `MOTOR2_GAIN 1.00` |
+
+**Operating envelope:** smooth from ~**0.06 m/s** (docking, thanks to the dither) to the nav max
+**0.16 m/s** and beyond. Below ~0.06 m/s = hard mechanical floor (motor deadband ~120 PWM, static>kinetic
+friction). **Live-tune:** `/debug/tune` Twist → `linear`=Kp,Ki,Kd · `angular.x`=R-gain · `angular.y`=Kff ·
+`angular.z`=dither (sliders in `pid_tuner.py`). **Per-boot ritual:** `align_enc_cal.py --arm 250` (~8 s),
+because the table lives in RAM.
+
+---
 
 ## 1. Symptom
 During live PID tuning (wheels in the air, `scripts/pid_tuner.py`), the **LEFT wheel kept a slow
