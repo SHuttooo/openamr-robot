@@ -411,3 +411,29 @@ MOTOR2_GAIN 1.00, KFF 7.87, FF_OFFSET 21, DITHER 92, vel-window 12. `/debug/tune
 linear=Kp,Ki,Kd; angular.x=R-gain; angular.y=Kff; angular.z=dither (sliders in `pid_tuner.py`).
 **Per-boot ritual: `align_enc_cal.py` (table is RAM).** Full write-up:
 `docs/history/encoder-calibration.md`. See [[amr-pid-tuning]].
+
+### 13d. End of Day 1 — SLAM mapping attempt + drift diagnosis (RESUME HERE)
+Also produced today: the **10-day delivery plan** (`docs/10-DAY-PLAN-2026-07-10.md` + `docs/10-day-plan.html`,
+to share with Alex) and a **Foxglove proposal** (kept proposal-only — the operator UI covers monitoring).
+Plus `docs/data/pid-tuning-log.md` (all the step-response values for diagrams).
+
+Started a **SLAM mapping session** (base bring-up + slam_toolbox) and hit **heavy drift**. Diagnosis:
+- At rest: **no odometry drift** (position frozen, heading stable over 7 s) → gyro/EKF healthy. IMU 50 Hz.
+  **Single** `/odom` publisher (EKF) → no double-TF issue.
+- **Lidar only ~7 Hz** (`/scan` 7.2, `/scan_filtered` 6.9) — low; the scan-matcher gets few frames →
+  contributes to drift during motion. *(Worth raising the RPLIDAR scan rate later, or just drive very slow.)*
+- The decisive symptom: **the robot does not drive straight.** → almost certainly the **encoder ripple
+  table was NOT loaded** (RAM, wiped by the last reflash, never re-aligned this session). Without it the
+  LEFT wheel velocity is mis-measured (±40% ripple) → the PID holds it at a wrong speed → the robot
+  curves → odometry vs reality diverges → the map drifts.
+
+**This is the lesson of the day, operationally:** `align_enc_cal.py` is **mandatory before any
+driving/mapping**, not just before PID tuning — the table is RAM and dies on every Teensy power-cycle.
+
+**RESUME HERE (next session):**
+1. `align_enc_cal.py --arm 250` (wheels up, ~8 s) → loads the ripple table.
+2. Teleop forward → **confirm it now drives straight.** If it still curves after the align, it's
+   mechanical (left-wheel intermittent cable / wheel alignment) — investigate there.
+3. Restart slam_toolbox fresh, map **very slowly** (`speed:=0.06`, gentle arcs, no sharp spins; the 7 Hz
+   lidar needs it), close loops, save (`map_saver_cli` + `serialize_map`).
+4. Then continue the 10-day plan: **Day 2 = real Nav2 validation** (localization, costmaps, send a goal).
