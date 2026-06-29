@@ -53,7 +53,7 @@
   <header class="top">
     <h1>OpenAMR — 10-Day Plan to Delivery</h1>
     <p><strong>Author:</strong> Matthieu &nbsp;·&nbsp; <strong>For:</strong> Alex + team &nbsp;·&nbsp; <strong>Shared:</strong> 29 Jun 2026</p>
-    <p><strong>Milestone — Fri 10 Jul:</strong> a ready-made operating robot running a full navigation + docking mission, plus delivered, reviewed documentation.</p>
+    <p><strong>Milestone — Fri 10 Jul:</strong> a ready-made operating robot running a full navigation + docking mission (docking = AprilTag-guided approach &amp; alignment, no physical cradle), plus delivered, reviewed documentation.</p>
     <div>
       <span class="pill">10 working days (Mon–Fri)</span>
       <span class="pill">29 Jun → 10 Jul</span>
@@ -99,8 +99,8 @@
         <tr><td class="day">1</td><td class="date">Mon 29/06</td><td>Motor loop finalized + plan</td><td>Velocity loop done, tuned, flashed &amp; documented. <span class="ok">✓ done</span> This plan + Foxglove proposal shared.</td></tr>
         <tr><td class="day">2</td><td class="date">Tue 30/06</td><td>Real Nav2 bring-up</td><td>Robot localizes, costmaps populated, <strong>navigates autonomously to a goal</strong> in the real room and avoids obstacles.</td></tr>
         <tr><td class="day">3</td><td class="date">Wed 01/07</td><td>Nav2 tuning (real)</td><td>Controller/limits matched to the new motor loop, footprint &amp; recoveries tuned, <strong>clean map saved</strong>. Reliable point-to-point nav.</td></tr>
-        <tr><td class="day">4</td><td class="date">Thu 02/07</td><td>Docking prerequisites</td><td><strong>AprilTag detected on the real camera</strong>; physical dock + tag confirmed; <strong>dock pose measured in the map</strong>.</td></tr>
-        <tr><td class="day">5</td><td class="date">Fri 03/07</td><td>Docking → real</td><td>Docking sequence runs end-to-end on hardware (smooth low-speed approach). <strong>First successful real dock.</strong></td></tr>
+        <tr><td class="day">4</td><td class="date">Thu 02/07</td><td>Docking prerequisites</td><td>AprilTag(s) <strong>printed &amp; placed</strong>; <strong>detected on the real camera</strong>; <strong>target pose measured in the map</strong>. <span class="muted">(No physical cradle — docking = AprilTag-guided approach.)</span></td></tr>
+        <tr><td class="day">5</td><td class="date">Fri 03/07</td><td>Docking → real</td><td>Docking sequence runs end-to-end on hardware (staging → approach → <strong>AprilTag alignment</strong>, smooth low-speed). <strong>First successful guided approach + alignment.</strong></td></tr>
         <tr><td class="day">6</td><td class="date">Mon 06/07</td><td>Docking robustness</td><td>Reliable <strong>dock + undock + re-dock</strong>; <strong>nav → dock → undock runs as one mission</strong>.</td></tr>
         <tr><td class="day">7</td><td class="date">Tue 07/07</td><td><span class="badge b-pr">Pull requests</span></td><td>Address the remaining review comments on the integration PRs, respond to the review, <strong>get them merge-ready / merged</strong>.</td></tr>
         <tr><td class="day">8</td><td class="date">Wed 08/07</td><td>Integration + wire the UI</td><td>Full mission run <strong>repeatedly</strong>; edge cases fixed; battery/endurance checked; <strong>the (already-started) operator UI wired to the live mission</strong> (goal, dock/undock, stop).</td></tr>
@@ -122,17 +122,18 @@
       <li><strong>Minimal operator UI</strong> (control + monitoring) — supervisor-requested.</li>
       <li><span class="badge b-stretch">stretch</span> UI polish · Foxglove · extra robustness.</li>
     </ol>
-    <p class="muted" style="margin:10px 0 0">If the <strong>docking hardware</strong> isn’t ready or the schedule slips, the first things to reduce are the UI (→ minimal / monitoring-only) and the stretch items — <strong>nav, docking and the documentation stay protected.</strong> The trade-off is explicit so it is decided calmly, not in a panic.</p>
+    <p class="muted" style="margin:10px 0 0">If the schedule slips, the first things to reduce are the UI (→ minimal / monitoring-only) and the stretch items — <strong>nav, docking and the documentation stay protected.</strong> (Docking = AprilTag-guided approach, no physical cradle → no hardware-procurement risk.) The trade-off is explicit so it is decided calmly, not in a panic.</p>
   </section>
 
   <!-- RISKS -->
   <section class="card risk">
     <h2><span class="dot" style="background:var(--warn)"></span>Risks &amp; dependencies — to flag now</h2>
     <ul>
-      <li><strong>Docking hardware (highest risk).</strong> Only the camera calibration is confirmed.
-        Docking (Days 4–6) also needs AprilTag detection on the real camera, a <strong>physical dock
-        station with the tag mounted</strong>, and the dock pose in the map. <strong>If the physical
-        dock/tag isn’t available, please flag it now</strong> — it gates Days 4–6 and may need build time.</li>
+      <li><strong>Docking scope — no physical dock (now low-risk).</strong> There is <strong>no physical
+        dock cradle</strong>; docking = an <strong>AprilTag-guided approach &amp; alignment to a target
+        pose</strong> (the autonomy, not a charging connection — already validated in simulation).
+        Remaining work is software: print &amp; place the AprilTag(s) and get detection working on the
+        real camera (camera already calibrated). <strong>The earlier hardware-procurement risk is gone.</strong></li>
       <li><strong>Battery endurance.</strong> The motor loop was validated on mains; real missions run on
         battery — confirmed on Day 2 (the power fix should cover this).</li>
       <li><strong>Pull-request re-review.</strong> Getting them <em>merged</em> (vs merge-ready) depends on
