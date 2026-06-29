@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenAMR — 10-Day Plan to Delivery (10 Jul 2026)</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1f2733; --muted:#5b6675; --line:#e3e7ee;
+    --brand:#2563eb; --brand-d:#1d4ed8; --ok:#15803d; --okbg:#e7f6ec;
+    --warn:#b45309; --warnbg:#fdf3e3; --stretch:#6d28d9; --stretchbg:#f1ecfb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 20px 64px}
+  header.top{background:linear-gradient(135deg,var(--brand),#3b82f6);color:#fff;border-radius:16px;
+    padding:28px 30px;box-shadow:0 6px 24px rgba(37,99,235,.25)}
+  header.top h1{margin:0 0 6px;font-size:26px;letter-spacing:.2px}
+  header.top p{margin:2px 0;opacity:.95;font-size:14.5px}
+  .pill{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+    padding:2px 10px;border-radius:999px;font-size:12.5px;margin-right:6px;margin-top:8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;
+    margin-top:22px;box-shadow:0 1px 3px rgba(16,24,40,.04)}
+  h2{font-size:19px;margin:0 0 14px;display:flex;align-items:center;gap:9px}
+  h2 .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);display:inline-block}
+  h3{font-size:15px;margin:18px 0 6px;color:var(--ink)}
+  p,li{color:var(--ink)} .muted{color:var(--muted)}
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:14.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f3f8;color:var(--muted);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.4px}
+  tbody tr:last-child td{border-bottom:none}
+  td.day{font-weight:700;color:var(--brand-d);white-space:nowrap}
+  td.date{white-space:nowrap;color:var(--muted);font-size:13.5px}
+  .ok{background:var(--okbg);color:var(--ok);border-radius:6px;padding:1px 8px;font-size:12.5px;font-weight:600;white-space:nowrap}
+  .badge{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12.5px;font-weight:600}
+  .b-pr{background:#e6f0ff;color:var(--brand-d)} .b-stretch{background:var(--stretchbg);color:var(--stretch)}
+  .hl{border-left:4px solid var(--ok);background:var(--okbg)}
+  .risk{border-left:4px solid var(--warn);background:var(--warnbg)}
+  .stretchbox{border-left:4px solid var(--stretch);background:var(--stretchbg)}
+  code{background:#eef1f6;padding:1px 6px;border-radius:5px;font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  ul{margin:6px 0 0;padding-left:20px} li{margin:3px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 26px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+  .foot{color:var(--muted);font-size:13px;text-align:center;margin-top:26px}
+  .check{color:var(--ok);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>OpenAMR — 10-Day Plan to Delivery</h1>
+    <p><strong>Author:</strong> Matthieu &nbsp;·&nbsp; <strong>For:</strong> Alex + team &nbsp;·&nbsp; <strong>Shared:</strong> 29 Jun 2026</p>
+    <p><strong>Milestone — Fri 10 Jul:</strong> a ready-made operating robot running a full navigation + docking mission, plus delivered, reviewed documentation.</p>
+    <div>
+      <span class="pill">10 working days (Mon–Fri)</span>
+      <span class="pill">29 Jun → 10 Jul</span>
+      <span class="pill">Power blocker resolved ✓</span>
+    </div>
+  </header>
+
+  <!-- TODAY -->
+  <section class="card hl">
+    <h2><span class="dot" style="background:var(--ok)"></span>What I accomplished today (Day 1, 29 Jun)</h2>
+    <p>The long-standing <em>“left wheel oscillation”</em> — a slow wobble no PID gain could remove — was
+       diagnosed and fixed for good. By measuring the encoder, I found it was <strong>not a control
+       problem but a sensor defect</strong>: a decentered encoder magnet reporting a <strong>±40&nbsp;%
+       fake velocity ripple</strong> (twice per wheel turn). Fixing it properly meant rebuilding the
+       whole low-level velocity loop. <span class="check">Done, tuned, flashed, committed and documented.</span></p>
+    <div class="grid2">
+      <ul>
+        <li><strong>Encoder-ripple correction</strong> — a correction table loaded at runtime and
+            re-aligned automatically in ~8&nbsp;s per power-on (±40&nbsp;% → ±4&nbsp;%).</li>
+        <li><strong>Velocity feedforward</strong> — the same, consistent response at <em>every</em> speed
+            (a plain PID overshot more and more as speed rose).</li>
+        <li><strong>Back-calculation anti-windup</strong> — removes the high-speed overshoot.</li>
+      </ul>
+      <ul>
+        <li><strong>Low-speed velocity estimator</strong> — clean speed reading where the sensor is
+            otherwise too coarse.</li>
+        <li><strong>Anti-stiction dither</strong> — smooth motion down to <strong>~0.06&nbsp;m/s</strong>
+            (needed for docking).</li>
+        <li><strong>Final gains tuned &amp; baked into firmware;</strong> full write-up + technical-report
+            case study + this plan &amp; Foxglove proposal.</li>
+      </ul>
+    </div>
+    <p class="muted" style="margin-bottom:0">Result: a reliable, well-documented velocity loop — smooth from
+       ~0.06&nbsp;m/s up to the navigation max, with the same behaviour at any speed.</p>
+  </section>
+
+  <!-- PLAN -->
+  <section class="card">
+    <h2><span class="dot"></span>Day-by-day plan — one clear deliverable per day</h2>
+    <table>
+      <thead><tr><th>Day</th><th>Date</th><th>Focus</th><th>Deliverable (done = )</th></tr></thead>
+      <tbody>
+        <tr><td class="day">1</td><td class="date">Mon 29/06</td><td>Motor loop finalized + plan</td><td>Velocity loop done, tuned, flashed &amp; documented. <span class="ok">✓ done</span> This plan + Foxglove proposal shared.</td></tr>
+        <tr><td class="day">2</td><td class="date">Tue 30/06</td><td>Real Nav2 bring-up</td><td>Robot localizes, costmaps populated, <strong>navigates autonomously to a goal</strong> in the real room and avoids obstacles.</td></tr>
+        <tr><td class="day">3</td><td class="date">Wed 01/07</td><td>Nav2 tuning (real)</td><td>Controller/limits matched to the new motor loop, footprint &amp; recoveries tuned, <strong>clean map saved</strong>. Reliable point-to-point nav.</td></tr>
+        <tr><td class="day">4</td><td class="date">Thu 02/07</td><td>Docking prerequisites</td><td><strong>AprilTag detected on the real camera</strong>; physical dock + tag confirmed; <strong>dock pose measured in the map</strong>.</td></tr>
+        <tr><td class="day">5</td><td class="date">Fri 03/07</td><td>Docking → real</td><td>Docking sequence runs end-to-end on hardware (smooth low-speed approach). <strong>First successful real dock.</strong></td></tr>
+        <tr><td class="day">6</td><td class="date">Mon 06/07</td><td>Docking robustness</td><td>Reliable <strong>dock + undock + re-dock</strong>; <strong>nav → dock → undock runs as one mission</strong>.</td></tr>
+        <tr><td class="day">7</td><td class="date">Tue 07/07</td><td><span class="badge b-pr">Pull requests</span></td><td>Address the remaining review comments on the integration PRs, respond to the review, <strong>get them merge-ready / merged</strong>.</td></tr>
+        <tr><td class="day">8</td><td class="date">Wed 08/07</td><td>System integration</td><td>Full mission run <strong>repeatedly</strong>; edge cases fixed; battery/endurance checked. Repeatable end-to-end demo.</td></tr>
+        <tr><td class="day">9</td><td class="date">Thu 09/07</td><td>Documentation + cleanup</td><td>Runbook, procedures, architecture &amp; technical report finalized &amp; reviewed; reproducibility checked. <strong>Complete documentation set.</strong></td></tr>
+        <tr><td class="day">10</td><td class="date">Fri 10/07</td><td>Demo + handover</td><td><strong>Demo of the operating robot</strong> (nav + dock), <strong>documentation delivered</strong>, handover. 🎯 Milestone.</td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="margin-bottom:0">Documentation is written <em>as we go</em> (daily raw notes), so Day&nbsp;9 is consolidation/review — not first-draft writing.</p>
+  </section>
+
+  <!-- RISKS -->
+  <section class="card risk">
+    <h2><span class="dot" style="background:var(--warn)"></span>Risks &amp; dependencies — to flag now</h2>
+    <ul>
+      <li><strong>Docking hardware (highest risk).</strong> Only the camera calibration is confirmed.
+        Docking (Days 4–6) also needs AprilTag detection on the real camera, a <strong>physical dock
+        station with the tag mounted</strong>, and the dock pose in the map. <strong>If the physical
+        dock/tag isn’t available, please flag it now</strong> — it gates Days 4–6 and may need build time.</li>
+      <li><strong>Battery endurance.</strong> The motor loop was validated on mains; real missions run on
+        battery — confirmed on Day 2 (the power fix should cover this).</li>
+      <li><strong>Pull-request re-review.</strong> Getting them <em>merged</em> (vs merge-ready) depends on
+        the reviewer’s availability — to schedule with the team.</li>
+      <li><strong>Operational ritual.</strong> The encoder correction lives in RAM → an ~8&nbsp;s re-align
+        runs after each robot power-on (part of the operating SOP).</li>
+    </ul>
+  </section>
+
+  <!-- STRETCH -->
+  <section class="card stretchbox">
+    <h2><span class="dot" style="background:var(--stretch)"></span><span class="badge b-stretch">Stretch goal</span>&nbsp; Foxglove (only if Nav + docking + PRs are on track)</h2>
+    <p style="margin-top:0">Foxglove <strong>implementation is optional</strong> — done only if the committed
+       work is on track and time remains. Per the request, <strong>only the proposal below is delivered
+       today</strong>, and <strong>no repository changes will be made before it is reviewed/approved.</strong></p>
+    <h3>Foxglove integration — proposal</h3>
+    <table>
+      <tbody>
+        <tr><th style="width:34%">What for</th><td>A single <strong>web-based observability layer</strong> for the real robot — live monitoring <em>and</em> recorded-log (MCAP) playback of navigation, perception, motor control and docking. Valuable because the robot is a <strong>headless Raspberry Pi over WiFi</strong>.</td></tr>
+        <tr><th>Where in the workflow</th><td>Real-robot bring-up, tuning &amp; validation (Days 2–8) as the operator/debug dashboard, and for <strong>post-mortem analysis</strong> of recorded missions.</td></tr>
+        <tr><th>Topics / data</th><td>TF, <code>/odom</code>, <code>/scan</code>+<code>/scan_filtered</code>, <code>/map</code>, global/local costmaps + footprint, the cmd_vel chain, <code>/camera/...compressed</code>, Nav2 BT status, <strong><code>/debug/*</code> motor telemetry</strong>, docking state + AprilTag detections. Logs: MCAP rosbags.</td></tr>
+        <tr><th>Why current tools fall short</th><td>RViz over WiFi needs X-forwarding/same subnet and lags with camera; Gazebo is simulation-only; rqt is fragmented and needs X; rosbag has no integrated GUI. None gives one remote web UI = 3D + plots + image + log playback.</td></tr>
+        <tr><th>Benefit vs RViz / Gazebo / rqt / rosbag</th><td>Browser-based (no X), efficient remote streaming, <strong>one layout</strong> (3D + time-series + camera + state), savable/shareable layouts, native <strong>MCAP playback</strong> with the same panels. Much lower friction for field debugging on a headless robot.</td></tr>
+        <tr><th>Repo changes required</th><td><strong>Minimal &amp; additive:</strong> install <code>foxglove_bridge</code>, a small <code>foxglove.launch.py</code> (or a bringup include), optionally a saved layout JSON. <strong>No code changes to existing packages.</strong></td></tr>
+        <tr><th>Same repo or separate</th><td><strong>Inside the existing repo</strong> (a launch file + layout JSON under a <code>foxglove/</code> folder). A thin add-on — <strong>no separate repository needed</strong>.</td></tr>
+        <tr><th>Deliverables &amp; success</th><td>(a) bridge launchable with the stack; (b) a saved layout (nav + sensors + motor telemetry + docking); (c) monitor a live nav+dock mission over WiFi; (d) replay a recorded MCAP. <em>Success = debug a full mission remotely (no RViz/X) and analyze a recorded run.</em></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SUCCESS -->
+  <section class="card">
+    <h2><span class="dot"></span>Success criteria for the milestone (10 Jul)</h2>
+    <ul>
+      <li>Robot performs a <strong>full autonomous mission</strong>: navigate → dock → undock, repeatably.</li>
+      <li>Obstacle avoidance works; the robot does not drive into visible obstacles.</li>
+      <li><strong>Integration pull requests merged</strong> (or merge-ready) — review comments addressed.</li>
+      <li><strong>Documentation delivered &amp; reviewed</strong>: runbook + procedures + architecture + technical report; reproducible firmware.</li>
+      <li>A clean <strong>operating SOP</strong> (power-on → align encoder → bring-up → run mission).</li>
+      <li><span class="badge b-stretch">stretch</span> Foxglove monitoring operational.</li>
+    </ul>
+  </section>
+
+  <p class="foot">OpenAMR autonomous mobile robot · plan generated 29 Jun 2026 · full detail in
+     <code>docs/10-DAY-PLAN-2026-07-10.md</code></p>
+
+</div>
+</body>
+</html>
