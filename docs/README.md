@@ -72,10 +72,17 @@ docs/
   localization + planner + DWB + RotationShim, footprint/inflation/speed tuned. See
   [real-robot-runbook.md](procedures/real-robot-runbook.md). *Real-robot validation pending a power fix
   (see below).*
+- ✅ **Motor velocity loop fully tuned (2026-06-29).** Feedforward (`PWM=Kff*target+PID`) → same response
+  at every speed; back-calculation anti-windup; small-window velocity estimator; **anti-stiction dither**
+  → smooth down to ~0.06 m/s. Final gains baked in firmware (Kp 2.0 / Ki 0.10 / Kd 0.10, Kff 7.87,
+  dither 92). The "left wheel oscillation" was a **decentered encoder magnet** (±40% 2/rev ripple),
+  corrected by a **runtime ripple table** re-aligned in ~8 s per boot (`align_enc_cal.py`). See
+  [history/encoder-calibration.md](history/encoder-calibration.md) and the diagnostics journal §13.
 - ⏳ Camera **calibration** (needed before AprilTag docking).
 - ⚠️ **Power blocker:** the Pi browns out under load (24 V→5 V DC-DC undersized / battery low). The robot
   cannot run until the power path is fixed — see runbook §14.
-- ⚠️ Firmware PID gains are reconstructed (not the author's) — to verify against the real source.
+- ⚠️ Per-boot ritual: the encoder ripple table lives in RAM → run `align_enc_cal.py` after each Teensy
+  power-cycle (see running-the-robot §4b).
 
 ---
-*Last updated: 2026-06-25.*
+*Last updated: 2026-06-29.*

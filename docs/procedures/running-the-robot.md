@@ -1,6 +1,6 @@
 # Running the robot — base quick-start (step by step)
 
-*Last updated: 2026-06-18.*
+*Last updated: 2026-06-29.*
 
 > **Scope:** this is the quick-start for the **base robot** — bring-up, teleop, SLAM mapping, camera,
 > firmware flash. For the **full autonomous-navigation (Nav2) stack** (localization, planner, costmaps,
@@ -92,6 +92,19 @@ sudo teensy_loader_cli --mcu=TEENSY40 -w -v $HEX
 ```
 Details & config: [../firmware/firmware.md](../firmware/firmware.md).
 
+## 4b. Encoder ripple re-align — RUN AFTER EVERY POWER-ON / FLASH (wheels in the air)
+The left encoder magnet is decentered (±40% per-rev velocity ripple). The firmware corrects it with a
+table **held in RAM**, and the encoder is incremental → its zero shifts to a random wheel angle on every
+Teensy boot. So the table must be re-aligned after each power-cycle (a fast ~8 s phase align, not a full
+re-calibration). **From the dev PC** (ROS sourced, `ROS_DOMAIN_ID=0`, CycloneDDS):
+```bash
+python3 scripts/align_enc_cal.py --arm 250        # ~8 s: spin, find phase offset, load the table
+```
+Skip this and the PID chases a 40% fake ripple (the "left wheel oscillation"). Only needed when the
+**Teensy** reboots — not when you only restart the PC-side ROS. Velocity loop = feedforward + PID +
+anti-stiction dither (smooth down to ~0.06 m/s); details in
+[../history/encoder-calibration.md](../history/encoder-calibration.md). Live-tune with `pid_tuner.py`.
+
 ## 5. Stopping
 - `k` in teleop, or `Ctrl-C` on the publisher → motors stop within 200 ms (watchdog).
 - Hardware: the 24 V cut-off.
@@ -108,3 +121,4 @@ Details & config: [../firmware/firmware.md](../firmware/firmware.md).
 | Dev PC sees no topics | wrong `ROS_DOMAIN_ID` (use 0), wrong RMW, or different WiFi subnet than the Pi |
 | `pkill ...` kills the SSH session (exit 255) | pattern matches its own cmdline → use the bracket trick `pkill -f "[s]can_body_filter.py"` |
 | SLAM map drifts / scan doesn't align | drove too fast / in-place spins → drive slowly; consider a fresh map |
+| Left wheel oscillates / robot judders at low speed after a reboot | encoder ripple table not loaded → run `align_enc_cal.py --arm 250` (§4b). The table is in RAM, lost on every Teensy power-cycle |

@@ -17,10 +17,28 @@ The files in this directory replace the upstream ones:
 
 | File | Why |
 |---|---|
-| `config/lino_base_config.h` | this robot's pins, geometry (`LR_WHEELS_DISTANCE 0.46`), PID gains, `MOTOR2_GAIN`, IMU/driver selection |
-| `lib/encoder/encoder.h` | **period-method `getRPM()`** — fine low-speed resolution (was a 0/3/6 staircase) |
-| `lib/pid/pid.h`, `lib/pid/pid.cpp` | explicit member init, `reset()`, **saturation-aware anti-windup** |
-| `src/firmware.ino` | `/debug/*` telemetry + `/debug/tune` live tuning; **watchdog = deterministic full stop + PID reset**; **bounded** `/debug/openloop`; odometry first-dt guard |
+| `config/lino_base_config.h` | this robot's pins, geometry (`LR_WHEELS_DISTANCE 0.46`), **tuned gains K_P 2.0 / K_I 0.10 / K_D 0.10**, `MOTOR2_GAIN 1.00`, IMU/driver selection |
+| `lib/encoder/encoder.h` | `getRPM()` + `read()` (cumulative counts) used by the velocity estimator |
+| `lib/pid/pid.h`, `lib/pid/pid.cpp` | explicit member init, `reset()`, **back-calculation anti-windup** (bleeds the integral on saturation, ≠ freeze) |
+| `src/firmware.ino` | the whole velocity control chain (below) + `/debug/*` telemetry + `/debug/tune` live tuning + **watchdog** (deterministic full stop + PID reset) + **bounded** `/debug/openloop` + odometry first-dt guard |
+
+## Velocity control chain (`firmware.ino`, tuned 2026-06-29)
+Per wheel, at 50 Hz: `cmd_vel → kinematics → [feedforward + PID] → dither → PWM`, with the feedback
+cleaned before it reaches the PID. Each stage fixes one measured problem (full story:
+`docs/history/encoder-calibration.md`):
+1. **Velocity estimator** (`VelEstimator`, 12-count window): velocity = Δcounts/Δt over a small fixed
+   displacement → clean rpm even at low speed (instant getRPM = ±70% quantization noise below 5 rpm).
+2. **Runtime ripple table** (`calib_rpm`, `LEFT_CAL/RIGHT_CAL[36]`): divides out the decentered-magnet
+   ±40% 2/rev error. Loaded via `/debug/enc_cal` at runtime (the incremental encoder zero shifts each
+   boot → a compiled table is phase-wrong). Re-align ~8 s/boot with `scripts/align_enc_cal.py`.
+3. **Feedforward** (`KFF_DEFAULT 7.87` PWM/rpm + `FF_OFFSET_DEFAULT 21`): supplies the holding PWM →
+   **same response at every speed** (the PID only trims the residual).
+4. **PID** (Kp/Ki/Kd) + **back-calculation anti-windup** (`pid.cpp`).
+5. **Anti-stiction dither** (`DITHER_DEFAULT 92` PWM, 25 Hz, **only <13 rpm**): breaks low-speed
+   stick-slip → smooth down to ~0.06 m/s (docking). Off at cruise.
+
+Live-tune via `/debug/tune` (Twist): `linear`=Kp,Ki,Kd · `angular.x`=R-gain · `angular.y`=Kff ·
+`angular.z`=dither. Defaults above are compiled; live values are RAM-only.
 
 ## Apply + build + flash (on the Pi)
 ```bash

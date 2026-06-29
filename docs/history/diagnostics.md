@@ -369,8 +369,45 @@ flat (2.3%), RIGHT got worse (anti-phase, 19%). v2 (refined tables): BOTH ripple
 right ±8%) → it did not converge. **Root cause: the encoder is read incrementally — the count resets
 to 0 at every Teensy boot, at a random wheel angle — so `counts mod 1024` is an angle relative to boot,
 NOT absolute. Every reflash reboots → the encoder zero shifts (differently per wheel) → the fixed table
-lands at the wrong angle.** A position-indexed table can't work with an incremental encoder. **Real fix
-(next): a velocity filter** that smooths the 2/rev ripple without needing a phase reference (survives
-reboots); or read the AS5040 absolute angle; or re-center the magnet. `MOTOR2_GAIN` 1.10→1.05 (right
-4.8% faster) is valid (scalar). All data saved: `docs/data/encoder_calib_*.json`. Full write-up:
+lands at the wrong angle.** A position-indexed table can't work with a compiled-in correction. `MOTOR2_GAIN` 1.10→1.05 (right
+4.8% faster) is valid (scalar). All data saved: `docs/data/encoder_calib_*.json`.
+
+### 13b. Encoder fix done right — runtime table + fast per-boot phase align
+- **Velocity-filter dead-ends:** a time-domain low-pass (EMA) does NOTHING — the ripple is angle-locked
+  (~0.4–0.9 Hz, scales with speed) so it sits in the control band and passes the filter (worse at low
+  speed). An angle-domain estimator (velocity over a fixed 512-count = half-rev window) DID flatten it
+  (±40%→±4%) at any speed, BUT added ~0.6 s lag → **rejected by the user** for the PID.
+- **The table, made reboot-proof:** the user wanted the table (instant, no lag). Made it work by loading
+  it **at runtime** via `/debug/enc_cal` (Float32MultiArray) instead of compiling it in. The ripple
+  SHAPE is fixed (magnet); only its PHASE shifts per boot. So we froze the shape once
+  (`scripts/encoder_ref_table.json`) and, each boot, run `align_enc_cal.py` (~8 s): a short spin →
+  measure raw ripple → sub-bin cross-correlate (~1°) vs the reference → roll to the current frame →
+  publish. **GOTCHA that cost a run:** align MUST reset the table to flat BEFORE measuring (else it
+  measures the residual of the loaded table → wrong offset → anti-phase → ripple DOUBLED to ~71%).
+  Result: LEFT ±40%→±4%, RIGHT ±3.5%, instant, survives reboots. Re-run after each power-cycle.
+
+### 13c. Velocity loop fully tuned (the "left oscillation" → a whole control chain)
+With clean velocity feedback, tuned the loop on the bench (`pid_tuner.py`, gains live via `/debug/tune`):
+- **Kp alone barely moved the step → it's a velocity loop:** the rise is paced by the INTEGRAL winding
+  up to the holding PWM, not by Kp. Cranking Kp just added noise.
+- **Speed-dependent overshoot → FEEDFORWARD.** A pure PID makes the integral guess the holding PWM,
+  which differs per speed → overshoot that grows with speed (47% at 0.31 m/s vs 12% at 0.15). Added
+  `PWM = KFF*target + offset + PID` (KFF=7.87 from open-loop) → the FF supplies the holding PWM → **same
+  response shape at every speed**, and gains drop to **Kp 2.0 / Ki 0.10 / Kd 0.10**. Tuned KFF down to
+  7.33→7.87 to kill the residual overshoot.
+- **High-speed (saturated) overshoot → back-calculation anti-windup** (`pid.cpp`): bleeds the excess out
+  of the integral on saturation (the old conditional integration only froze it). Verified at 0.31 (out
+  of nav range anyway: `max_vel_x=0.16`).
+- **Low-speed noise → small-window velocity estimator (12 counts):** instant getRPM = ~1 count/sample
+  below 5 rpm = ±70% noise. Fixed-displacement velocity is clean at any speed, ~20 ms lag.
+- **Low-speed stick-slip → anti-stiction dither.** Below ~0.09 m/s the wheel sticks/slips (motor deadband
+  ~120 PWM, static>kinetic friction) → a clean 0→9 rpm limit cycle even at steady PWM. Added a **±92 PWM
+  dither flipped at 25 Hz, active only <13 rpm** → keeps the wheels micro-moving → smooth down to
+  ~0.06 m/s (docking). The RIGHT wheel needed more dither (worse friction). Below ~0.06 = hard mechanical
+  floor, no software fix.
+
+**Baked as firmware defaults + flashed + committed (`cfe54c6`):** K_P 2.0 / K_I 0.10 / K_D 0.10,
+MOTOR2_GAIN 1.00, KFF 7.87, FF_OFFSET 21, DITHER 92, vel-window 12. `/debug/tune` channels:
+linear=Kp,Ki,Kd; angular.x=R-gain; angular.y=Kff; angular.z=dither (sliders in `pid_tuner.py`).
+**Per-boot ritual: `align_enc_cal.py` (table is RAM).** Full write-up:
 `docs/history/encoder-calibration.md`. See [[amr-pid-tuning]].
