@@ -103,12 +103,26 @@
         <tr><td class="day">5</td><td class="date">Fri 03/07</td><td>Docking → real</td><td>Docking sequence runs end-to-end on hardware (smooth low-speed approach). <strong>First successful real dock.</strong></td></tr>
         <tr><td class="day">6</td><td class="date">Mon 06/07</td><td>Docking robustness</td><td>Reliable <strong>dock + undock + re-dock</strong>; <strong>nav → dock → undock runs as one mission</strong>.</td></tr>
         <tr><td class="day">7</td><td class="date">Tue 07/07</td><td><span class="badge b-pr">Pull requests</span></td><td>Address the remaining review comments on the integration PRs, respond to the review, <strong>get them merge-ready / merged</strong>.</td></tr>
-        <tr><td class="day">8</td><td class="date">Wed 08/07</td><td>System integration</td><td>Full mission run <strong>repeatedly</strong>; edge cases fixed; battery/endurance checked. Repeatable end-to-end demo.</td></tr>
-        <tr><td class="day">9</td><td class="date">Thu 09/07</td><td>Documentation + cleanup</td><td>Runbook, procedures, architecture &amp; technical report finalized &amp; reviewed; reproducibility checked. <strong>Complete documentation set.</strong></td></tr>
-        <tr><td class="day">10</td><td class="date">Fri 10/07</td><td>Demo + handover</td><td><strong>Demo of the operating robot</strong> (nav + dock), <strong>documentation delivered</strong>, handover. 🎯 Milestone.</td></tr>
+        <tr><td class="day">8</td><td class="date">Wed 08/07</td><td>Integration + wire the UI</td><td>Full mission run <strong>repeatedly</strong>; edge cases fixed; battery/endurance checked; <strong>the (already-started) operator UI wired to the live mission</strong> (goal, dock/undock, stop).</td></tr>
+        <tr><td class="day">9</td><td class="date">Thu 09/07</td><td>Minimal UI + documentation</td><td><strong>Minimal usable UI done</strong> (control: goal/dock/undock/stop · monitor: status+camera+map); runbook/procedures/report finalized &amp; reviewed.</td></tr>
+        <tr><td class="day">10</td><td class="date">Fri 10/07</td><td>Demo + handover</td><td><strong>Demo of the operating robot via the UI</strong> (nav + dock), <strong>documentation delivered</strong>, handover. 🎯 Milestone.</td></tr>
       </tbody>
     </table>
-    <p class="muted" style="margin-bottom:0">Documentation is written <em>as we go</em> (daily raw notes), so Day&nbsp;9 is consolidation/review — not first-draft writing.</p>
+    <p class="muted" style="margin:8px 0 0"><strong>Parallel track — Operator UI (control + monitoring):</strong> already started, so it advances incrementally from Day&nbsp;6 (a little each day) to a <strong>minimal usable version by Day&nbsp;9</strong> — not a single crunch. It also covers monitoring, so <strong>Foxglove implementation is dropped</strong> (proposal still delivered today). Documentation is written <em>as we go</em>.</p>
+  </section>
+
+  <!-- PRIORITY -->
+  <section class="card">
+    <h2><span class="dot"></span>Priority order — if time gets tight (decided in advance)</h2>
+    <ol style="margin:0;padding-left:22px">
+      <li><strong>Reliable autonomous navigation</strong> (Days 2–3) — the foundation.</li>
+      <li><strong>Full mission: nav + docking</strong> (Days 4–6) — the core must-have.</li>
+      <li><strong>Documentation delivered</strong> (continuous + Day 9) — milestone requirement.</li>
+      <li><strong>Integration pull requests</strong> merge-ready (Day 7).</li>
+      <li><strong>Minimal operator UI</strong> (control + monitoring) — supervisor-requested.</li>
+      <li><span class="badge b-stretch">stretch</span> UI polish · Foxglove · extra robustness.</li>
+    </ol>
+    <p class="muted" style="margin:10px 0 0">If the <strong>docking hardware</strong> isn’t ready or the schedule slips, the first things to reduce are the UI (→ minimal / monitoring-only) and the stretch items — <strong>nav, docking and the documentation stay protected.</strong> The trade-off is explicit so it is decided calmly, not in a panic.</p>
   </section>
 
   <!-- RISKS -->
@@ -130,10 +144,11 @@
 
   <!-- STRETCH -->
   <section class="card stretchbox">
-    <h2><span class="dot" style="background:var(--stretch)"></span><span class="badge b-stretch">Stretch goal</span>&nbsp; Foxglove (only if Nav + docking + PRs are on track)</h2>
-    <p style="margin-top:0">Foxglove <strong>implementation is optional</strong> — done only if the committed
-       work is on track and time remains. Per the request, <strong>only the proposal below is delivered
-       today</strong>, and <strong>no repository changes will be made before it is reviewed/approved.</strong></p>
+    <h2><span class="dot" style="background:var(--stretch)"></span><span class="badge b-stretch">Stretch / dropped</span>&nbsp; Foxglove — proposal only</h2>
+    <p style="margin-top:0">The operator UI already covers monitoring, so <strong>Foxglove implementation is
+       dropped from the schedule</strong>. Per the request, <strong>the proposal below is still delivered
+       today</strong>, and <strong>no repository changes will be made before it is reviewed/approved</strong>
+       — it would only be revisited if the UI is cut.</p>
     <h3>Foxglove integration — proposal</h3>
     <table>
       <tbody>
@@ -156,9 +171,10 @@
       <li>Robot performs a <strong>full autonomous mission</strong>: navigate → dock → undock, repeatably.</li>
       <li>Obstacle avoidance works; the robot does not drive into visible obstacles.</li>
       <li><strong>Integration pull requests merged</strong> (or merge-ready) — review comments addressed.</li>
+      <li><strong>Minimal operator UI</strong> working: send a goal, dock/undock, stop + monitor status/camera/map.</li>
       <li><strong>Documentation delivered &amp; reviewed</strong>: runbook + procedures + architecture + technical report; reproducible firmware.</li>
       <li>A clean <strong>operating SOP</strong> (power-on → align encoder → bring-up → run mission).</li>
-      <li><span class="badge b-stretch">stretch</span> Foxglove monitoring operational.</li>
+      <li><span class="badge b-stretch">stretch</span> UI polish · Foxglove monitoring.</li>
     </ul>
   </section>
 
