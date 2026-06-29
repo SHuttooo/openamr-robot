@@ -1,4 +1,13 @@
-"""Bring-up REEL OpenAMR (base materielle) — un seul lancement :
+"""
+⚠️  LEGACY / OBSOLETE (2026-06-26) — migrating to the platform.
+    New, integrated equivalent: openamrobot_bringup/real_bringup.launch.py, launched via
+        ros2 launch openamrobot_bringup bringup.launch.py sim:=false
+    (data source + Nav2 + docking/forwarder in ONE command).
+    Kept functional for field use until the new launch is validated on the
+    robot. See docs/ARCHITECTURE.md §6.
+================================================================================
+
+Bring-up REEL OpenAMR (base materielle) — un seul lancement :
   - agent micro-ROS (Teensy : /cmd_vel, /odom/unfiltered, /imu/data)
   - driver RPLidar (/scan, frame lidar_link)
   - filtre lidar -> /scan_filtered (enleve la coque du robot ; cf scan_body_filter.py)

@@ -1,6 +1,6 @@
 # Diagnostics & decisions (the "why")
 
-*Last updated: 2026-06-18.*
+*Last updated: 2026-06-29.*
 
 A log of the main problems solved and **how** we reasoned, so newcomers understand why the robot is set
 up the way it is. Method used throughout: **the LEFT wheel is the reference** (same firmware/gains, so any
@@ -266,3 +266,111 @@ the Pi: `/tmp/trace.sh` (cmd_vel vs odom vs wheel rpm during a goal — rerun af
    odom** (else = wheel/execution = fix left-wheel cable, blocker #1) and **AMCL stays localized** (else =
    localization). This decides whether the remaining problem is nav tuning, hardware, or localization.
 4. If execution is clean and it still hits a tall, mapped obstacle → revisit DWB tuning / footprint pad.
+
+---
+
+## 11. Session 2026-06-25 — Nav2 integration tuning, camera over WiFi, mapping workflow, POWER blocker
+
+Worked on the deployed Nav2 integration (`openamr-platform-sw`, on the Pi as `~/openamr-integration`).
+Full operational detail is in [../procedures/real-robot-runbook.md](../procedures/real-robot-runbook.md).
+
+### Nav2 tuning (all persisted in `nav2_params.yaml`, repo + Pi)
+- **`always_send_full_costmap: True`** (local + global) — fixes the RViz "No map received" (the latched
+  transient_local grid was not delivered to a late WiFi subscriber). Runbook §3b.
+- **Inflation:** global `0.20 → 0.35` (the global *plan* keeps more clearance from walls); local stays
+  `0.15` (fine reactive avoidance).
+- **Speed / braking** (heavy robot overshoots): `max_vel_x 0.20`, `max_speed_xy 0.20`, `decel_lim_x -2.5`,
+  `max_vel_theta 0.5`, `decel_lim_theta -2.0`. Runbook §13.
+- **RotationShimController** wrapping DWB (`primary_controller: dwb_core::DWBLocalPlanner`,
+  `angular_dist_threshold 0.785`) + `vtheta_samples 40` — fixes "won't pivot in place to set off in
+  another direction". A reverse allowance (`min_vel_x -0.10`) was tried and **reverted** (it backed the
+  rear footprint into walls → stuck). Runbook §13.
+
+### Camera over WiFi
+- Images do **not** cross WiFi over DDS (raw 65 MB/s; compressed blocked by lazy publisher + RELIABLE QoS;
+  RViz 2 has no transport hint). Solution = **`web_video_server`** on the Pi (MJPEG HTTP in a browser).
+  Runbook §8b.
+
+### Mapping workflow
+- SLAM → `~/maps/piece_actuelle`. Cleaned phantom black specks with `scripts/clean_map.py` (connected-
+  component filter), manual edits in GIMP, hot reload via `/map_server/load_map`. Runbook §11.
+
+### New repo assets
+- `scripts/clean_map.py` (map despeckle), `scripts/stop.sh` (cancel `navigate_to_pose`), `use_camera`
+  arg on `real_bringup.launch.py` (lighter load).
+
+### BLOCKER — power brownout (root cause of the day's instability)
+- The Pi 5 **browns out and crashes under load** (motors + lidar start → current spike → 5 V collapses →
+  freeze, then off the network). Not thermal (fan works, ~56 °C under CPU load) and not the Pi (holds on a
+  bench 5 V/5 A supply). It is the robot's **24 V → 5 V DC-DC path**: low 24 V battery and/or an undersized
+  converter. Symptoms seen: terminal freeze, `No route to host`, lidar stops, red LED on Pi and on the
+  right motor driver. Runbook §14.
+
+### Next session (resume here)
+1. **Fix power first** — charge battery ≥ 25 V; verify the 24 V→5 V DC-DC is rated ≥ 5 A (thick short 5 V
+   wires, bulk cap); `usb_max_current_enable=1` is set in `/boot/firmware/config.txt`. Confirm the Pi holds
+   the bringup before anything else (runbook §14).
+2. Check the **right motor driver** red LED clears after charging (undervoltage) vs persists (real wiring
+   fault, e.g. after the left-cable reconnection).
+3. Then navigate on `piece_actuelle` per runbook §12; verify `cmd_vel` is stable (no `0.x`/`0.0`
+   alternation = no stray teleop / duplicate stack) and the robot drives straight (both wheels turn).
+4. A minor AMCL log was seen during localization: `Message Filter dropping message ... timestamp earlier
+   than transform cache` — a lidar/TF time-sync detail to revisit once power is stable.
+
+## 12. Session 2026-06-26 — Unified bringup integration + architecture audit + safety-regression fix
+
+Folded the scattered real-robot launch into the platform-sw integration, and audited the whole project.
+
+- **One entry point**: `bringup.launch.py sim:=true|false` does data source + Nav2 + docking + the goal
+  forwarder, symmetric sim/real, gated by `use_docking`. Sim docking folded in; legacy
+  `bringup_sim.launch.py` kept for compat. Validated in sim (robot navigates, exactly one goal forwarder).
+- **The goal-forwarder rule**: `navigation_launch` remaps `bt_navigator` goal → `/goal_pose_nav`, so a
+  forwarder (relay OR dock_trigger) is required — exactly one, never two. Added a startup guard in
+  `dock_trigger` that warns on a duplicate (tested).
+- **Big safety find (regression)**: the unified path did NOT launch `velocity_smoother`/`collision_monitor`
+  (configured but never started) → no reactive collision braking (matches "percute les objets visibles").
+  Re-wired `controller → cmd_vel_nav → velocity_smoother → cmd_vel_smoothed → collision_monitor → /cmd_vel`.
+  Validated in sim (both `active`, robot still navigates).
+- **Architecture audit** → `docs/ARCHITECTURE.md` (full structure), `docs/launch-architecture-audit.html`.
+  Decision: migrate the real launch to platform-sw (`bringup.launch.py sim:=false`), mark the old
+  `openamr/launch` + `nav2_params_real.yaml` + `bringall.sh` legacy.
+- **Tooling**: `scripts/deploy_to_pi.sh` (PC→Pi rsync + rebuild — keeps PC and Pi in sync);
+  `scripts/pid_tuner.py` GUI improved (PWM-output 2nd axis, m/s↔rpm, command line, wider gain ranges).
+- Tracking docs: `docs/CHANGELOG-FIXES.md` (every change + why), `docs/FIX-PLAN.md`.
+
+## 13. Session 2026-06-29 — Response to Raj's PR review + firmware safety + ENCODER calibration
+
+Raj reviewed the 6 integration PRs (Request changes). We addressed most of it (see
+`docs/integration-review-response.html` and `docs/PRESENTATION-BRIEF.md`): ~17 done, 7 partial, 6 left
+(mostly physical HW). Highlights:
+
+- **Nav2/perception**: one `/scan_filtered` per profile (filter moved out of the nav launch → data
+  source; verified 1 publisher / 4 subscribers); SLAM reads `/scan_filtered`; QoS doc corrected;
+  `trans_stopped_velocity` 0.25→0.02; velocity limits aligned; `vy_samples:1`; RPLIDAR
+  `angle_compensate`; map required for real (`sim:=false` fails clearly without `map:=`); camera
+  parameterized; scan-filter input validation.
+- **Firmware safety block (flashed)**: watchdog = deterministic full stop + PID reset (was velocity-0
+  with PID still running); PID explicit init + `reset()` + saturation-aware anti-windup; `/debug/openloop`
+  bounded + NaN-checked; odometry first-dt guard; production/diagnostic build profile
+  (`#define ENABLE_POWERED_DEBUG`). Overlay made reproducible (pinned upstream `@aaf9d59` +
+  `firmware/apply_overlay.sh`).
+- **Diagnostics**: `high_rate_capture` stops immediately at the jerk (was driving 0.4 s more);
+  powered scripts require `--arm` + fresh telemetry + bounds; `scripts/README.md` splits read-only vs
+  powered tools.
+
+**THE big diagnostic — the "left wheel oscillation" was a sensor defect, not the PID.** During live PID
+tuning the LEFT wheel kept a slow ±6 rpm oscillation that no gain (Kp/Ki/Kd) could remove. Built
+`scripts/encoder_calib.py` (open-loop, constant speed, bins measured rpm by wheel angle = counts mod
+1024). Result: the LEFT encoder reports a **2-cycle/rev geometric error of ~40% peak-to-peak
+(0.84..1.22), IDENTICAL across PWM 150/200/250/300** → position-locked, speed-independent =
+**magnet misalignment** (AS5040). RIGHT ~±5%. The PID was chasing a 40% *measurement* ripple.
+**Fix attempt (per-wheel correction tables `LEFT_CAL/RIGHT_CAL[36]`) — DID NOT HOLD.** v1: LEFT went
+flat (2.3%), RIGHT got worse (anti-phase, 19%). v2 (refined tables): BOTH rippled again (left ±5%,
+right ±8%) → it did not converge. **Root cause: the encoder is read incrementally — the count resets
+to 0 at every Teensy boot, at a random wheel angle — so `counts mod 1024` is an angle relative to boot,
+NOT absolute. Every reflash reboots → the encoder zero shifts (differently per wheel) → the fixed table
+lands at the wrong angle.** A position-indexed table can't work with an incremental encoder. **Real fix
+(next): a velocity filter** that smooths the 2/rev ripple without needing a phase reference (survives
+reboots); or read the AS5040 absolute angle; or re-center the magnet. `MOTOR2_GAIN` 1.10→1.05 (right
+4.8% faster) is valid (scalar). All data saved: `docs/data/encoder_calib_*.json`. Full write-up:
+`docs/history/encoder-calibration.md`. See [[amr-pid-tuning]].

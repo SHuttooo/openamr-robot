@@ -1,6 +1,10 @@
-# Running the robot (step by step)
+# Running the robot — base quick-start (step by step)
 
 *Last updated: 2026-06-18.*
+
+> **Scope:** this is the quick-start for the **base robot** — bring-up, teleop, SLAM mapping, camera,
+> firmware flash. For the **full autonomous-navigation (Nav2) stack** (localization, planner, costmaps,
+> goal sending, and every pitfall + fix), use [real-robot-runbook.md](real-robot-runbook.md).
 
 ## 0. Safety first
 Read [safety.md](safety.md). For any motor test: **wheels off the ground, 24 V on, a hand on the 24 V
@@ -53,9 +57,9 @@ ros2 launch slam_toolbox online_async_launch.py use_sim_time:=false \
 Drive slowly with teleop, return to start to close the loop, then save:
 ```bash
 mkdir -p ~/maps && cd ~/maps
-ros2 run nav2_map_server map_saver_cli -f coin1 -p save_map_timeout:=15.0
+ros2 run nav2_map_server map_saver_cli -f piece_actuelle -p save_map_timeout:=15.0
 ros2 service call /slam_toolbox/serialize_map slam_toolbox/srv/SerializePoseGraph \
-  "{filename: '/home/botshare/maps/coin1'}"
+  "{filename: '/home/botshare/maps/piece_actuelle'}"
 ```
 Full details & caveats: [../software/navigation.md](../software/navigation.md).
 

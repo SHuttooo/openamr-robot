@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Capture instantanee de la camera cote robot (Pi headless).
-Le topic /camera/image_raw/compressed est deja du JPEG -> on ecrit les octets tels quels.
-Usage : source ROS + camera_ws, puis : python3 ~/cam_snapshot.py [chemin.jpg]
+"""Instant snapshot from the robot-side camera (headless Pi).
+The /camera/image_raw/compressed topic is already JPEG -> write the bytes as-is.
+Usage: source ROS + camera_ws, then: python3 ~/cam_snapshot.py [path.jpg]
 """
 import sys, time
 import rclpy
@@ -22,7 +22,7 @@ class Snap(Node):
             return
         with open(OUT, "wb") as f:
             f.write(bytes(m.data))
-        print(f"snapshot ecrit: {OUT} ({len(m.data)} octets, format {m.format})")
+        print(f"snapshot written: {OUT} ({len(m.data)} bytes, format {m.format})")
         self.done = True
 
 def main():
@@ -32,7 +32,7 @@ def main():
     while rclpy.ok() and not n.done and time.time() - t0 < 8:
         rclpy.spin_once(n, timeout_sec=0.3)
     if not n.done:
-        print("AUCUNE image recue (camera_node lance ? camera_ws source ?)")
+        print("NO image received (camera_node launched? camera_ws sourced?)")
 
 if __name__ == "__main__":
     main()

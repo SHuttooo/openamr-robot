@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Test guide des encodeurs (roues en l'air, a la main, SANS alim 24V).
+"""Guided encoder test (wheels in the air, by hand, WITHOUT 24V power).
 
-Le script te dit quoi faire et quand, avec compte a rebours, detecte le
-mouvement en direct, et affiche une conclusion. Lance-le dans TON terminal :
+The script tells you what to do and when, with a countdown, detects motion
+live, and prints a conclusion. Run it in YOUR terminal:
 
     python3 ~/guided_encoder_test.py
 
-Vitesses reconstruites depuis /odom/unfiltered :
-    v_droite = lin.x + ang.z * (LR/2)
-    v_gauche = lin.x - ang.z * (LR/2)
+Velocities reconstructed from /odom/unfiltered:
+    v_right = lin.x + ang.z * (LR/2)
+    v_left  = lin.x - ang.z * (LR/2)
 """
 import time
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 
-LR = 0.45
+LR = 0.46   # wheel separation (m), matches firmware LR_WHEELS_DISTANCE (was 0.45 — Raj review PR3)
 HALF = LR / 2.0
-SEUIL = 0.01  # m/s : au-dessus = mouvement detecte
+SEUIL = 0.01  # m/s: above = motion detected
 
 
 class Mon(Node):
@@ -52,9 +52,9 @@ def phase(node, titre, secondes, mesurer=True):
             last_print = restant
             live = ""
             if mesurer:
-                gl = "GAUCHE✓" if abs(node.vl) > SEUIL else "gauche·"
-                dr = "DROITE✓" if abs(node.vr) > SEUIL else "droite·"
-                live = f"   [{gl}  {dr}]  vg={node.vl:+.3f} vd={node.vr:+.3f}"
+                gl = "LEFT✓" if abs(node.vl) > SEUIL else "left·"
+                dr = "RIGHT✓" if abs(node.vr) > SEUIL else "right·"
+                live = f"   [{gl}  {dr}]  vl={node.vl:+.3f} vr={node.vr:+.3f}"
             print(f"   {restant:2d}s...{live}", flush=True)
     return max_l, max_r
 
@@ -62,32 +62,32 @@ def phase(node, titre, secondes, mesurer=True):
 def main():
     rclpy.init()
     node = Mon()
-    # purge du pic transitoire de demarrage
-    phase(node, "INIT - ne touche a rien (purge demarrage)", 3, mesurer=False)
-    gl, gr = phase(node, ">>> TOURNE LA ROUE  G-A-U-C-H-E  (MOTOR1) <<<", 10)
-    phase(node, "PAUSE - arrete tout", 3, mesurer=False)
-    dl, dr = phase(node, ">>> TOURNE LA ROUE  D-R-O-I-T-E  (MOTOR2) <<<", 10)
+    # flush the startup transient spike
+    phase(node, "INIT - don't touch anything (startup flush)", 3, mesurer=False)
+    gl, gr = phase(node, ">>> TURN THE  L-E-F-T  WHEEL  (MOTOR1) <<<", 10)
+    phase(node, "PAUSE - stop everything", 3, mesurer=False)
+    dl, dr = phase(node, ">>> TURN THE  R-I-G-H-T  WHEEL  (MOTOR2) <<<", 10)
 
     print("\n" + "#" * 50)
-    print("RESULTAT")
+    print("RESULT")
     print("#" * 50)
-    print(f"Phase GAUCHE tournee : max v_gauche={gl:.3f}  max v_droite={gr:.3f}")
-    print(f"Phase DROITE tournee : max v_gauche={dl:.3f}  max v_droite={dr:.3f}")
+    print(f"LEFT phase turned : max v_left={gl:.3f}  max v_right={gr:.3f}")
+    print(f"RIGHT phase turned: max v_left={dl:.3f}  max v_right={dr:.3f}")
     print("-" * 50)
-    enc_g = gl > SEUIL or dl > SEUIL  # un signal pendant qu'on tourne gauche
-    enc_d = gr > SEUIL or dr > SEUIL  # un signal pendant qu'on tourne droite
+    enc_g = gl > SEUIL or dl > SEUIL  # a signal while turning left
+    enc_d = gr > SEUIL or dr > SEUIL  # a signal while turning right
 
     def verdict(nom, max_attendu, max_autre):
         if max_attendu > SEUIL and max_autre <= SEUIL:
-            return f"{nom}: OK (encodeur compte, bonne voie)"
+            return f"{nom}: OK (encoder counts, correct channel)"
         if max_attendu <= SEUIL and max_autre > SEUIL:
-            return f"{nom}: signal sur la MAUVAISE voie (cablage/assignation inversee ?)"
+            return f"{nom}: signal on the WRONG channel (wiring/assignment swapped?)"
         if max_attendu <= SEUIL and max_autre <= SEUIL:
-            return f"{nom}: AUCUN signal -> encodeur muet (HS/debranche ?)"
-        return f"{nom}: signal sur les DEUX voies (etrange)"
+            return f"{nom}: NO signal -> encoder silent (dead/unplugged?)"
+        return f"{nom}: signal on BOTH channels (strange)"
 
-    print(verdict("Roue GAUCHE", gl, gr))
-    print(verdict("Roue DROITE", dr, dl))
+    print(verdict("LEFT wheel", gl, gr))
+    print(verdict("RIGHT wheel", dr, dl))
     print("#" * 50, flush=True)
 
     node.destroy_node()

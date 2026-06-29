@@ -1,3 +1,7 @@
+# ⚠️ LEGACY / OBSOLETE (2026-06-26). Standalone goal forwarder (old field system).
+#    Replaced by the integrated brick: openamrobot_bringup/goal_relay.launch.py
+#    (or the docking, which acts as the forwarder). See docs/ARCHITECTURE.md §1.5 + §6.
+#    Kept until bringall.sh is repointed to bringup.launch.py sim:=false.
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient

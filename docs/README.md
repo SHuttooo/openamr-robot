@@ -20,6 +20,7 @@ docs/
     raspberry-pi.md
     teensy.md
     motors-drivers.md
+    motor-driver-fault-codes.md  <- ZBLD.C20 LED blink codes (red LED = fault, e.g. code 10 = under-voltage)
     encoders.md
     imu.md
     lidar.md
@@ -36,11 +37,17 @@ docs/
     navigation.md
     visualization.md     <- RViz/rqt from the Ubuntu dev PC (domain, RMW, compressed camera)
   procedures/            <- how-to (step by step)
-    running-the-robot.md
+    running-the-robot.md       <- base robot quick-start (bring-up, teleop, SLAM, firmware flash)
+    real-robot-runbook.md      <- full Nav2 navigation stack + troubleshooting (current reference)
     safety.md
-  history/               <- decisions & diagnostics (the "why")
+  history/               <- decisions, diagnostics, reports (the "why")
     diagnostics.md
+    rapport-stage-technique.md <- technical internship report (FR, historical)
 ```
+
+> **Two procedure docs, by purpose:** [`running-the-robot.md`](procedures/running-the-robot.md) is the
+> quick-start for the **base robot** (bring-up, teleop, SLAM, firmware). [`real-robot-runbook.md`](procedures/real-robot-runbook.md)
+> is the **full autonomous-navigation (Nav2) runbook** with every pitfall and fix — use it for navigation.
 
 ## Key conventions (know these right away)
 
@@ -57,12 +64,18 @@ docs/
 - ✅ Real bring-up in a single launch (`/cmd_vel /odom /imu/data /scan /scan_filtered /camera/*` + TF).
 - ✅ **Odometry EKF** (`robot_localization`): wheels + IMU gyro Z fused → `/odom`.
 - ✅ **LiDAR body filter** → `/scan_filtered` (robot chassis masked).
-- ✅ **SLAM** (`slam_toolbox`) builds & saves maps (first map `~/maps/coin1`).
+- ✅ **SLAM** (`slam_toolbox`) builds & saves maps (current working map `~/maps/piece_actuelle`).
 - ✅ **Camera working** (IMX708 NoIR via the **Raspberry Pi libcamera fork** — the apt one doesn't support it).
+  Viewed over WiFi via `web_video_server` (MJPEG in a browser), not RViz — see the runbook §8b.
 - ✅ Remote visualization from an Ubuntu desktop (RViz/rqt, domain 0, CycloneDDS, same subnet).
-- ⏳ Nav2 + AMCL (autonomous navigation): to be set up (`openamr-platform-sw` cloned, not built).
+- ✅ **Nav2 + AMCL integrated** (`openamr-platform-sw`, deployed on the Pi as `~/openamr-integration`):
+  localization + planner + DWB + RotationShim, footprint/inflation/speed tuned. See
+  [real-robot-runbook.md](procedures/real-robot-runbook.md). *Real-robot validation pending a power fix
+  (see below).*
 - ⏳ Camera **calibration** (needed before AprilTag docking).
-- ⚠️ Firmware PID gains are reconstructed (not the author's) — to verify against the real source (~2026-06-19).
+- ⚠️ **Power blocker:** the Pi browns out under load (24 V→5 V DC-DC undersized / battery low). The robot
+  cannot run until the power path is fixed — see runbook §14.
+- ⚠️ Firmware PID gains are reconstructed (not the author's) — to verify against the real source.
 
 ---
-*Last updated: 2026-06-18.*
+*Last updated: 2026-06-25.*

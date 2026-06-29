@@ -1,14 +1,14 @@
 # EKF robot_localization — OpenAMR
-# Fusionne l'odometrie roues (/odom/unfiltered) + le gyro Z de l'IMU (/imu/data).
-# L'IMU MPU6500 n'a PAS d'orientation valide (quaternion nul) ni d'accelero fiable
-# (montee penchee ~14deg) -> on n'utilise QUE angular_velocity.z (vitesse de lacet).
-# Sortie : TF odom->base_link + /odometry/filtered (remappe en /odom).
+# Fuses wheel odometry (/odom/unfiltered) + the IMU Z gyro (/imu/data).
+# The MPU6500 IMU has NO valid orientation (null quaternion) and no reliable accel
+# (tilted mount ~14deg) -> we use ONLY angular_velocity.z (yaw rate).
+# Output: TF odom->base_link + /odometry/filtered (remapped to /odom).
 ekf_filter_node:
   ros__parameters:
     frequency: 30.0
-    transform_time_offset: 0.2   # date le TF +0.2s : le scan lidar est ~0.14s en avance sur le TF (latence micro-ROS) -> evite "extrapolation into the future" cote SLAM
+    transform_time_offset: 0.2   # dates the TF +0.2s: the lidar scan is ~0.14s ahead of the TF (micro-ROS latency) -> avoids "extrapolation into the future" on the SLAM side
     sensor_timeout: 0.2
-    two_d_mode: true              # robot planaire : ignore z, roll, pitch
+    two_d_mode: true              # planar robot: ignore z, roll, pitch
     publish_tf: true
     print_diagnostics: true
 
@@ -17,7 +17,7 @@ ekf_filter_node:
     base_link_frame: base_link
     world_frame: odom
 
-    # --- Odometrie roues : on prend vx (lineaire) et vyaw (rotation) ---
+    # --- Wheel odometry: take vx (linear) and vyaw (rotation) ---
     odom0: /odom/unfiltered
     odom0_config: [false, false, false,
                    false, false, false,
@@ -28,7 +28,7 @@ ekf_filter_node:
     odom0_relative: false
     odom0_queue_size: 10
 
-    # --- IMU : on prend UNIQUEMENT vyaw (= angular_velocity.z) ---
+    # --- IMU: take ONLY vyaw (= angular_velocity.z) ---
     imu0: /imu/data
     imu0_config: [false, false, false,
                   false, false, false,

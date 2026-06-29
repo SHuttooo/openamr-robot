@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenAMRobot — Integration: Before/After &amp; Response to Review</title>
+<style>
+  :root{
+    --ink:#1b1f24; --muted:#5b6671; --line:#d7dde3; --bg:#f6f8fa;
+    --ok:#1f8a4c; --ok-bg:#e6f5ec;
+    --part:#c9700a; --part-bg:#fdf1e1;
+    --plan:#5b6671; --plan-bg:#eef1f4;
+    --bad:#c0392b; --bad-bg:#fbe9e7;
+    --accent:#1d6fb8; --accent-bg:#e7f1fa;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+       background:var(--bg);margin:0;line-height:1.5}
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 24px 90px}
+  h1{font-size:27px;margin:0 0 4px}
+  h2{font-size:21px;margin:42px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;margin:22px 0 6px}
+  .sub{color:var(--muted);margin:0 0 6px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+       background:#eef1f4;padding:1px 5px;border-radius:4px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0;
+        box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0;background:#fff}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f0f3f6;font-weight:600}
+  td.c{text-align:center;white-space:nowrap}
+  .b{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .b.ok{background:var(--ok-bg);color:var(--ok)}
+  .b.part{background:var(--part-bg);color:var(--part)}
+  .b.plan{background:var(--plan-bg);color:var(--plan)}
+  .b.p0{background:var(--bad-bg);color:var(--bad)}
+  .b.p1{background:var(--part-bg);color:var(--part)}
+  .b.p2{background:var(--plan-bg);color:var(--plan)}
+  .scorecard{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0}
+  .score{flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;text-align:center}
+  .score .n{font-size:30px;font-weight:800;line-height:1}
+  .score .l{font-size:12px;color:var(--muted);margin-top:4px}
+  .score.ok .n{color:var(--ok)} .score.part .n{color:var(--part)} .score.plan .n{color:var(--plan)}
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:8px 0}
+  .ba .col{padding:12px 14px}
+  .ba .before{background:var(--bad-bg)} .ba .after{background:var(--ok-bg);border-left:1px solid var(--line)}
+  .ba h4{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+  .ba .before h4{color:var(--bad)} .ba .after h4{color:var(--ok)}
+  .ba ul{margin:0;padding-left:18px;font-size:13px} .ba li{margin:3px 0}
+  ul{margin:6px 0;padding-left:20px} li{margin:3px 0}
+  .meta{font-size:12px;color:var(--muted);margin-top:6px}
+  .pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:6px;background:var(--accent-bg);color:var(--accent)}
+  .lead{font-size:15px}
+  .mono{font-family:ui-monospace,monospace;font-size:12px;white-space:pre;background:#2b2f36;color:#e6edf3;padding:10px 12px;border-radius:8px;overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>OpenAMRobot — Integration: Before / After</h1>
+<p class="sub">Response to Raj Indulkar's pull-request review (27 June 2026) · prepared by Matthieu · presentation copy</p>
+
+<div class="card">
+  <p class="lead" style="margin:0 0 6px"><b>Where we agree:</b> the review's direction is correct, and we have <b>already implemented</b>
+  the single most important safety finding (the bypassed velocity smoother + collision monitor) plus several P1 defects,
+  validated in simulation and deployed to the robot.</p>
+  <p class="meta" style="margin:0">This deck maps every review finding to its current status: <span class="b ok">FIXED</span>
+  done &amp; verified · <span class="b part">PARTIAL</span> mitigated, structural work remains · <span class="b plan">PLANNED</span> on the roadmap.</p>
+</div>
+
+<!-- ============================================================= -->
+<h2>1. Scorecard — what changed since the review</h2>
+
+<div class="scorecard">
+  <div class="score ok"><div class="n">23</div><div class="l">findings FIXED &amp; verified</div></div>
+  <div class="score part"><div class="n">6</div><div class="l">PARTIAL (mitigated)</div></div>
+  <div class="score plan"><div class="n">5</div><div class="l">PLANNED (mostly physical HW)</div></div>
+</div>
+
+<table>
+<tr><th>Headline item from the review</th><th class="c">Status</th><th>One-line outcome</th></tr>
+<tr><td><b>Active path bypasses velocity smoother + collision monitor</b> (PR2/PR4, cross-PR)</td><td class="c"><span class="b ok">FIXED</span></td><td>Reactive-safety chain re-wired &amp; launched; verified <code>active</code> in sim, robot still navigates.</td></tr>
+<tr><td><b>Simulation goal loss</b> — RViz goals dropped (PR2)</td><td class="c"><span class="b ok">FIXED</span></td><td>Sim branch now launches exactly one forwarder; one-forwarder guard added &amp; tested.</td></tr>
+<tr><td><b>RPLIDAR <code>angle_compensation</code> typo</b> (PR2)</td><td class="c"><span class="b ok">FIXED</span></td><td>Renamed to <code>angle_compensate</code>.</td></tr>
+<tr><td><b><code>trans_stopped_velocity</code> 0.25 &gt; max_vel_x</b> (PR4)</td><td class="c"><span class="b ok">FIXED</span></td><td>Set to 0.02 (odom-noise floor).</td></tr>
+<tr><td><b>Inert / wrong DWB params</b> (BaseObstacle.inflate_cost, vy_samples) (PR4)</td><td class="c"><span class="b ok">FIXED</span></td><td><code>inflate_cost</code> removed; <code>vy_samples: 1</code> for the differential base.</td></tr>
+<tr><td><b>Real auto initial-pose may be wrong</b> (PR2)</td><td class="c"><span class="b part">PARTIAL</span></td><td>Real no longer forces (0,0); operator supplies pose via RViz. Map-required gating still TODO.</td></tr>
+<tr><td><b>Two <code>/scan_filtered</code> publishers possible</b> (PR1/PR2, cross-PR)</td><td class="c"><span class="b ok">FIXED</span></td><td>Filter removed from the generic nav launch → owned by each data source. Verified in sim: <b>exactly 1 publisher</b>, 4 subscribers.</td></tr>
+<tr><td><b>SLAM consumes raw <code>/scan</code></b> (PR1)</td><td class="c"><span class="b ok">FIXED</span></td><td><code>slam.yaml</code> now reads <code>/scan_filtered</code> — no chassis arcs in maps.</td></tr>
+<tr><td><b>QoS doc wrongly says Nav2 requires RELIABLE</b> (PR1)</td><td class="c"><span class="b ok">FIXED</span></td><td>Reworded to endpoint-compatibility (README + code comments).</td></tr>
+<tr><td><b>Inconsistent velocity limits</b> (PR4)</td><td class="c"><span class="b ok">FIXED</span></td><td>velocity_smoother aligned to the DWB real-robot limits.</td></tr>
+<tr><td><b>Duplicated geometry 0.45 vs 0.46</b> (PR3)</td><td class="c"><span class="b ok">FIXED</span></td><td>Test scripts use 0.46 (matches firmware).</td></tr>
+<tr><td><b>Software validation = build/lint only</b> (cross-PR)</td><td class="c"><span class="b part">PARTIAL</span></td><td>Added end-to-end <b>sim</b> evidence; bench/rosbag/floor evidence still to gather.</td></tr>
+<tr><td><b>Firmware command-state / timeout / PWM arming</b> (PR5/PR3)</td><td class="c"><span class="b part">PARTIAL</span></td><td><b>Flashed:</b> watchdog full-stop + PID reset, PID init/reset/anti-windup, openloop bounds, odom dt. Remaining: arming/exclusive diagnostic mode + bench plots.</td></tr>
+<tr><td><b>Hardware fuse / source-selection / E-stop</b> (PR6)</td><td class="c"><span class="b plan">PLANNED</span></td><td>Physical safety work; acknowledged, in progress (power baseline first).</td></tr>
+</table>
+<p class="meta">Bonus (not in the review): firmware <b>encoder velocity precision</b> rewritten (period method) — removes the low-speed rpm quantization that degraded telemetry/odometry.</p>
+
+<!-- ============================================================= -->
+<h2>2. The headline fix — reactive safety restored</h2>
+<p class="sub">Review, PR2/PR4 P0: “the active real-robot velocity path bypasses the configured velocity smoother and collision monitor.”</p>
+
+<div class="ba">
+  <div class="col before">
+    <h4>Before</h4>
+    <ul>
+      <li><code>navigation_launch.py</code> launched controller/planner/BT only.</li>
+      <li><code>velocity_smoother</code> + <code>collision_monitor</code> were <b>configured in YAML but never started</b>.</li>
+      <li>Controller published straight to <code>/cmd_vel</code> — <b>no reactive collision braking</b>.</li>
+      <li>Symptom on the real robot: it drove into visible obstacles.</li>
+    </ul>
+  </div>
+  <div class="col after">
+    <h4>After</h4>
+    <ul>
+      <li>Both nodes added to the lifecycle and launched.</li>
+      <li>Explicit chain: <code>controller → cmd_vel_nav → velocity_smoother → cmd_vel_smoothed → collision_monitor → /cmd_vel</code>.</li>
+      <li>Verified in sim: both nodes <code>active</code>, exactly one final <code>/cmd_vel</code> writer, robot still reaches its goal.</li>
+      <li>Deployed &amp; rebuilt on the Pi.</li>
+    </ul>
+  </div>
+</div>
+<p class="meta">Files: <code>openamrobot_nav2/launch/navigation_launch.py</code>, <code>package.xml</code> (added <code>nav2_velocity_smoother</code>, <code>nav2_collision_monitor</code>).
+Evidence: <code>ros2 lifecycle get</code> → <code>active [3]</code> for both; <code>ros2 topic info /cmd_vel_nav|/cmd_vel_smoothed</code> → 1 pub / 1 sub each.</p>
+
+<!-- ============================================================= -->
+<h2>3. The unified launch &amp; goal routing</h2>
+<p class="sub">Review, PR2: single entry point is good; sim goal forwarding was missing.</p>
+
+<div class="ba">
+  <div class="col before">
+    <h4>Before</h4>
+    <ul>
+      <li>Sim branch did not launch any <code>/goal_pose → /goal_pose_nav</code> forwarder → RViz “2D Goal Pose” silently dropped.</li>
+      <li>Risk of zero or two forwarders depending on how layers were composed by hand.</li>
+    </ul>
+  </div>
+  <div class="col after">
+    <h4>After</h4>
+    <ul>
+      <li>Symmetric rule, both profiles: <b>exactly one</b> forwarder — <code>dock_trigger</code> (docking on) <i>or</i> a plain relay (docking off), chosen by <code>use_docking</code>.</li>
+      <li><code>dock_trigger</code> now has a startup guard that detects &amp; warns on a second publisher (tested: it fires on a duplicate).</li>
+      <li>RViz goal reaches <code>bt_navigator</code> in sim and real.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<h2>4. Bonus — firmware encoder velocity precision</h2>
+<p class="sub">Not requested in the review, but it improves odometry/telemetry quality (cross-PR “time and frames”).</p>
+<div class="ba">
+  <div class="col before">
+    <h4>Before</h4>
+    <ul>
+      <li>RPM = integer ticks / fixed ~20 ms window. At 1024 CPR + 50 Hz → ~2.9 rpm resolution.</li>
+      <li>Low-speed velocity came out as a coarse 0 / 3 / 6 / 9 staircase.</li>
+    </ul>
+  </div>
+  <div class="col after">
+    <h4>After</h4>
+    <ul>
+      <li>Period method: window closes only on a real edge → <code>dt</code> spans the true inter-edge time → fine resolution at low speed; 150 ms idle ⇒ 0.</li>
+      <li>Built, flashed, agent reconnected; mirrored into the repo (<code>firmware/lib/encoder/encoder.h</code>).</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<h2>5. Full response matrix (by PR)</h2>
+
+<h3>PR1 — Perception (scan body filter + camera) <span class="b p1">Request changes</span></h3>
+<table>
+<tr><th>Review finding</th><th class="c">Pri</th><th class="c">Status</th><th>Our action</th></tr>
+<tr><td>Real mode can start two <code>/scan_filtered</code> publishers</td><td class="c"><span class="b p0">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Filter <b>removed from <code>navigation_launch</code></b> → owned by each data-source profile (sim: laser_filters in bringup; real: perception). Sim-verified: <b>1 publisher, 4 subscribers</b>.</td></tr>
+<tr><td>SLAM still consumes raw <code>/scan</code></td><td class="c"><span class="b p0">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td><code>slam.yaml scan_topic: /scan_filtered</code>.</td></tr>
+<tr><td>Doc wrongly claims Nav2 Jazzy requires RELIABLE scans</td><td class="c"><span class="b p0">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Reworded to endpoint-compatibility in README + code comments.</td></tr>
+<tr><td>No validation of malformed sector lists; no algorithm tests</td><td class="c"><span class="b p2">P2</span></td><td class="c"><span class="b part">PARTIAL</span></td><td><b>Validation done</b>: rejects odd-length lists, non-finite, reversed/wrapped pairs, invalid close_max. Unit tests (<code>colcon test</code>): planned.</td></tr>
+<tr><td>Camera dimensions/format/frame not parameterized</td><td class="c"><span class="b p2">P2</span></td><td class="c"><span class="b ok">FIXED</span></td><td>width/height/format/frame_id/camera_name are launch args; node name = camera_name.</td></tr>
+</table>
+
+<h3>PR2 — Real bring-up (drivers + bringup) <span class="b p1">Request changes</span></h3>
+<table>
+<tr><th>Review finding</th><th class="c">Pri</th><th class="c">Status</th><th>Our action</th></tr>
+<tr><td>Active path bypasses smoother + collision monitor</td><td class="c"><span class="b p0">P0</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Chain re-wired &amp; launched (see §2). Formal command-mux for nav/teleop/docking/diag: planned.</td></tr>
+<tr><td>Simulation goal loss (no forwarder)</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>One forwarder per profile via <code>use_docking</code> (see §3).</td></tr>
+<tr><td>RPLIDAR <code>angle_compensation</code> typo</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Renamed <code>angle_compensate</code>.</td></tr>
+<tr><td>Real defaults to bundled map + auto initial pose</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>AMCL no longer forces (0,0) on real (pose via RViz) AND <code>sim:=false</code> now <b>fails clearly without an explicit map</b> (no bundled-map fallback; map existence checked).</td></tr>
+<tr><td>Lifecycle not gated on fresh scan/odom/TF</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b plan">PLANNED</span></td><td>Staged activation gated on <code>/scan_filtered</code>, <code>/odom</code>, <code>map→odom</code>.</td></tr>
+<tr><td>EKF 0.2 s offset treats a symptom; IMU TF identity but tilted</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b plan">PLANNED</span></td><td>rosbag timestamp analysis; measure &amp; publish real IMU orientation.</td></tr>
+<tr><td>No deterministic stop on LiDAR/agent failure</td><td class="c"><span class="b p1">P2</span></td><td class="c"><span class="b part">PARTIAL</span></td><td>Firmware watchdog now forces a <b>deterministic motor stop + PID reset</b> on stale <code>/cmd_vel</code> (covers agent death). Host-side bounded LiDAR restart: planned.</td></tr>
+</table>
+
+<h3>PR3 — Diagnostics <span class="b p2">Split / request changes</span></h3>
+<table>
+<tr><th>Review finding</th><th class="c">Pri</th><th class="c">Status</th><th>Our action</th></tr>
+<tr><td>Powered tools can move before telemetry is confirmed; no exclusive ownership</td><td class="c"><span class="b p0">P0</span></td><td class="c"><span class="b part">PARTIAL</span></td><td><b>Done</b> on high_rate_capture + openloop_test: <code>--arm</code> + fresh-telemetry-required before motion. Exclusive-ownership (mux) + remaining scripts: planned.</td></tr>
+<tr><td>No finite/limit validation; high_rate_capture keeps moving after trigger</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>high_rate_capture <b>stops immediately at the trigger</b> + passive logging; PWM/vel/duration bounded + finite-checked.</td></tr>
+<tr><td>Inactive VAR-pot advice; 0.45 vs 0.46 m geometry duplication</td><td class="c"><span class="b part">PARTIAL</span></td><td class="c"><span class="b part">PARTIAL</span></td><td>Geometry fixed (test scripts now 0.46, matching firmware). VAR-pot note removal + single shared config: planned.</td></tr>
+<tr><td>Split read-only tools into a low-risk PR</td><td class="c"><span class="b p1">—</span></td><td class="c"><span class="b ok">FIXED</span></td><td><code>scripts/README.md</code> categorizes read-only vs powered (<code>--arm</code>) vs launch — ready to split.</td></tr>
+</table>
+
+<h3>PR4 — Nav2 real tuning <span class="b p1">Request changes</span></h3>
+<table>
+<tr><th>Review finding</th><th class="c">Pri</th><th class="c">Status</th><th>Our action</th></tr>
+<tr><td><code>trans_stopped_velocity</code> 0.25 &gt; max_vel_x</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Set to 0.02.</td></tr>
+<tr><td>Smoother/monitor configured but not launched</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Now launched (see §2); README/launch graph match active nodes.</td></tr>
+<tr><td><code>BaseObstacle.inflate_cost</code> inert; <code>vy_samples</code> &gt; 1 on diff base</td><td class="c"><span class="b p2">P2</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Removed <code>inflate_cost</code>; <code>vy_samples: 1</code>.</td></tr>
+<tr><td>max_vel_x / max_speed_xy / smoother limits inconsistent</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>velocity_smoother max_velocity/accel/decel aligned to the DWB limits (0.20 / 0.5 / 0.5 / −2.5,−2.0).</td></tr>
+<tr><td>Loose tolerances; 2.0 rad/s needs validation; one param set for sim+real</td><td class="c"><span class="b p2">P2</span></td><td class="c"><span class="b part">PARTIAL</span></td><td>Nav vs docking tolerances <b>already separate</b> (documented); angular speed lowered to 0.5. Base-config + sim/real overlay split: planned.</td></tr>
+</table>
+
+<h3>PR5 — Teensy firmware overlay <span class="b p1">Request changes</span></h3>
+<table>
+<tr><th>Review finding</th><th class="c">Pri</th><th class="c">Status</th><th>Our action</th></tr>
+<tr><td>Raw <code>/debug/openloop</code> PWM unbounded / no arming / not exclusive</td><td class="c"><span class="b p0">P0</span></td><td class="c"><span class="b part">PARTIAL</span></td><td><b>Bounds + validation done</b> (reject NaN/Inf, clamp to 0.7·PWM_MAX). Full arming/exclusive diagnostic mode (new subscriber + GUI handshake): planned.</td></tr>
+<tr><td>Watchdog zeroes velocity but keeps running PID (no full stop)</td><td class="c"><span class="b p0">P0</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Stale <code>/cmd_vel</code> → <b>deterministic full stop + PID reset</b>; <code>moveBase</code> restructured. Flashed.</td></tr>
+<tr><td>PID lacks reset/dt/saturation anti-windup; first odom dt huge</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Explicit member init + <code>reset()</code> + <b>saturation-aware anti-windup</b> (conditional integration); first odom dt clamped. Flashed. (Explicit per-second dt rescale deferred — would re-scale tuned gains.)</td></tr>
+<tr><td>Encoder velocity resolution (telemetry quality)</td><td class="c"><span class="b p1">—</span></td><td class="c"><span class="b ok">FIXED</span></td><td>Period-method <code>getRPM()</code> (see §4) — flashed &amp; mirrored.</td></tr>
+<tr><td>Overlay not reproducible (no pinned upstream/commit, no CI)</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b part">PARTIAL</span></td><td><b>Pinned</b> upstream <code>linorobot2_hardware @aaf9d59</code> + <code>apply_overlay.sh</code> + README. CI: next step.</td></tr>
+<tr><td>Production + debug bypasses in one image</td><td class="c"><span class="b p2">P2</span></td><td class="c"><span class="b ok">FIXED</span></td><td><code>#define ENABLE_POWERED_DEBUG</code> gate: production build (define off) can't drive motors from <code>/debug/openloop</code>. Build-verified.</td></tr>
+</table>
+
+<h3>PR6 — Hardware audit <span class="b p0">Correct before approval</span></h3>
+<table>
+<tr><th>Review finding</th><th class="c">Pri</th><th class="c">Status</th><th>Our action</th></tr>
+<tr><td>Encoder voltage doc alternates 5 V / 3.3 V</td><td class="c"><span class="b p0">P0</span></td><td class="c"><span class="b part">PARTIAL</span></td><td>One authoritative 3.3 V statement + measured levels to be published.</td></tr>
+<tr><td>Battery/mains paralleled without source selection</td><td class="c"><span class="b p0">P0</span></td><td class="c"><span class="b plan">PLANNED</span></td><td>Rated selector / ideal-diode power-path; single-line diagram + back-feed test.</td></tr>
+<tr><td>No fuse / disconnect / E-stop</td><td class="c"><span class="b p0">P0</span></td><td class="c"><span class="b plan">PLANNED</span></td><td>Install + document; fuse sized from stall/ampacity worksheet.</td></tr>
+<tr><td>Contradictions not labelled current vs target</td><td class="c"><span class="b p1">P1</span></td><td class="c"><span class="b plan">PLANNED</span></td><td>Label every statement: current / temporary / approved target.</td></tr>
+</table>
+
+<!-- ============================================================= -->
+<h2>6. Evidence — what we can show today vs what we will gather</h2>
+<table>
+<tr><th>Evidence Raj asked for</th><th class="c">Status</th><th>Detail</th></tr>
+<tr><td>One final <code>/cmd_vel</code> writer; obstacle/stale-stop tests</td><td class="c"><span class="b part">PARTIAL</span></td><td>Sim: single writer confirmed, collision_monitor active. Stale-sensor + obstacle stop tests: to add.</td></tr>
+<tr><td>Exactly one <code>/scan_filtered</code> publisher per profile</td><td class="c"><span class="b part">PARTIAL</span></td><td>Real: 1 (perception). Sim: 1 (laser_filters). To re-verify with <code>topic info --verbose</code> after the structural move.</td></tr>
+<tr><td>RViz goal reaches Nav2 in both profiles</td><td class="c"><span class="b ok">SHOWN</span></td><td>Sim: goal published → robot navigated (odom 0 → 0.85 m).</td></tr>
+<tr><td>Simulation regression / rosbag / bench / floor</td><td class="c"><span class="b plan">PLANNED</span></td><td>Sim end-to-end done; rosbag timestamp analysis + supervised floor test scheduled.</td></tr>
+</table>
+
+<!-- ============================================================= -->
+<h2>7. Plan &amp; merge order (aligned with the review)</h2>
+<div class="card">
+<ol>
+  <li><b>Hardware power/encoder baseline</b> (PR6 P0) — one authoritative electrical doc; fuse + source-selection + E-stop. <span class="b plan">in progress</span></li>
+  <li><b>Firmware hardening</b> (PR5 P0) — arming, full-stop watchdog, PID reset, odom dt. <span class="b plan">next</span></li>
+  <li><b>Perception</b> — scan ownership + SLAM on filtered scan + tests. <span class="b part">partially mitigated</span></li>
+  <li><b>Real bring-up</b> — readiness gating + map/pose requirement + IMU TF. <span class="b part">started (A5)</span></li>
+  <li><b>Nav2 tuning</b> — already largely corrected; finish limit-audit + sim regression. <span class="b ok">mostly done</span></li>
+  <li><b>Powered diagnostics</b> last; split read-only tools into an earlier low-risk PR. <span class="b plan">planned</span></li>
+</ol>
+<p class="meta">Same order Raj recommended. The two cross-PR invariants — <b>one final <code>/cmd_vel</code> writer</b> and <b>one <code>/scan_filtered</code> per profile</b> — are our acceptance gates.</p>
+</div>
+
+<p class="meta" style="margin-top:30px">Companion documents: <code>docs/ARCHITECTURE.md</code> (full structure), <code>docs/CHANGELOG-FIXES.md</code> (every change + why),
+<code>docs/FIX-PLAN.md</code> (tracked checklist), <code>docs/launch-architecture-audit.html</code> (launch graph).</p>
+
+</div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Affichage live PID par roue : cible / mesure / ERREUR (cible-mesure) / counts.
-# /debug/left,/debug/right : Vector3  x=cible_rpm  y=mesure_rpm  z=counts.
-# Usage (Ubuntu, Cyclone domain 0) : python3 encpid.py
+# Live per-wheel PID display: target / measured / ERROR (target-measured) / counts.
+# /debug/left,/debug/right: Vector3  x=target_rpm  y=measured_rpm  z=counts.
+# Usage (Ubuntu, Cyclone domain 0): python3 encpid.py
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
@@ -15,16 +15,16 @@ class EncPid(Node):
         q.history = HistoryPolicy.KEEP_LAST
         self.L = None
         self.R = None
-        self.maxerr = {'GAUCHE': 0.0, 'DROITE': 0.0}
+        self.maxerr = {'LEFT': 0.0, 'RIGHT': 0.0}
         self.create_subscription(Vector3, '/debug/left',  lambda m: setattr(self, 'L', m), q)
         self.create_subscription(Vector3, '/debug/right', lambda m: setattr(self, 'R', m), q)
         self.create_timer(0.2, self.tick)  # 5 Hz
-        print(f"\n{'roue':6s} | {'cible':>7s} | {'mesure':>7s} | {'ERREUR':>8s} | {'|err|max':>8s} | {'count':>9s}")
+        print(f"\n{'wheel':6s} | {'target':>7s} | {'meas':>7s} | {'ERROR':>8s} | {'|err|max':>8s} | {'count':>9s}")
         print('-'*62)
 
     def line(self, name, m):
         if m is None:
-            print(f'{name:6s} |   (pas de donnee)')
+            print(f'{name:6s} |   (no data)')
             return
         tgt, meas = m.x, m.y
         err = tgt - meas
@@ -33,8 +33,8 @@ class EncPid(Node):
         print(f'{name:6s} | {tgt:7.2f} | {meas:7.2f} | {err:+8.2f} | {self.maxerr[name]:8.2f} | {m.z:9.0f}')
 
     def tick(self):
-        self.line('GAUCHE', self.L)
-        self.line('DROITE', self.R)
+        self.line('LEFT', self.L)
+        self.line('RIGHT', self.R)
         print('-'*62)
 
 def main():

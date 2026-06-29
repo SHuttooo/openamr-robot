@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Test SOUS PUISSANCE avec telemetrie debug (counts bruts + pwm).
-ROUES EN L'AIR. 24V sur les drivers. Main sur la coupure 24V.
+"""POWERED test with debug telemetry (raw counts + pwm).
+WHEELS OFF THE GROUND. 24V on the drivers. Hand on the 24V cutoff.
 
-Commande une petite vitesse avant et logue, par roue :
-  rpm mesure, counts bruts, delta counts (par intervalle), et le PWM.
+Commands a small forward speed and logs, per wheel:
+  measured rpm, raw counts, delta counts (per interval), and the PWM.
 
-But : voir si les counts DROITS decrochent (delta ~0) pendant que le PWM
-grimpe/sature -> windup confirme.
+Goal: see whether the RIGHT counts drop out (delta ~0) while the PWM
+climbs/saturates -> windup confirmed.
 
-Usage : python3 ~/powered_debug_test.py [vitesse] [duree]
-  defaut : 0.1 m/s, 5 s
+Usage: python3 ~/powered_debug_test.py [speed] [dur]
+  default: 0.1 m/s, 5 s
 
-Securites :
-  - auto-abort si |pwm| > PWM_ABORT (saturation) OU |rpm mesure| > RPM_ABORT
-  - zeros envoyes a la fin / a l'abort / Ctrl-C
-  - firmware coupe aussi les moteurs si plus de cmd_vel pendant 200 ms
+Safety:
+  - auto-abort if |pwm| > PWM_ABORT (saturation) OR |measured rpm| > RPM_ABORT
+  - zeros sent at end / on abort / Ctrl-C
+  - the firmware also cuts the motors if no cmd_vel for 200 ms
 """
 import sys
 import time
@@ -26,8 +26,8 @@ from geometry_msgs.msg import Twist, Vector3
 SPEED = float(sys.argv[1]) if len(sys.argv) > 1 else 0.1
 DURATION = float(sys.argv[2]) if len(sys.argv) > 2 else 5.0
 PWM_MAX = 1023          # PWM_BITS=10 -> max 1023
-PWM_ABORT = 850         # |pwm| au-dela = saturation -> abort
-RPM_ABORT = 45          # |rpm mesure| au-dela = emballement -> abort
+PWM_ABORT = 850         # |pwm| beyond this = saturation -> abort
+RPM_ABORT = 45          # |measured rpm| beyond this = runaway -> abort
 
 BE = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                 history=HistoryPolicy.KEEP_LAST, depth=10)
@@ -40,9 +40,9 @@ class T(Node):
         self.create_subscription(Vector3, '/debug/left', self.cl, BE)
         self.create_subscription(Vector3, '/debug/right', self.cr, BE)
         self.create_subscription(Vector3, '/debug/pwm', self.cp, BE)
-        self.l = (0.0, 0.0, 0.0)   # cible, mesure, counts
+        self.l = (0.0, 0.0, 0.0)   # target, measured, counts
         self.r = (0.0, 0.0, 0.0)
-        self.pwm = (0.0, 0.0, 0.0)  # pwm gauche, pwm droite
+        self.pwm = (0.0, 0.0, 0.0)  # left pwm, right pwm
 
     def cl(self, m):
         self.l = (m.x, m.y, m.z)
@@ -71,9 +71,9 @@ def main():
     while time.time() - t0 < 0.6:
         rclpy.spin_once(node, timeout_sec=0.05)
 
-    print(f"CMD lin.x={SPEED:+.3f} m/s pendant {DURATION:.0f}s  "
-          f"(abort si |pwm|>{PWM_ABORT} ou |rpm|>{RPM_ABORT})")
-    print(" t   | cmd  | GAUCHE rpm  cnt    d | DROITE rpm  cnt    d | pwmG  pwmD")
+    print(f"CMD lin.x={SPEED:+.3f} m/s for {DURATION:.0f}s  "
+          f"(abort if |pwm|>{PWM_ABORT} or |rpm|>{RPM_ABORT})")
+    print(" t   | cmd  | LEFT rpm   cnt    d | RIGHT rpm   cnt    d | pwmL  pwmR")
     print("-----+------+----------------------+----------------------+-----------",
           flush=True)
 
@@ -88,10 +88,10 @@ def main():
             rclpy.spin_once(node, timeout_sec=0.05)
             pl, pr = node.pwm[0], node.pwm[1]
             if abs(pl) > PWM_ABORT or abs(pr) > PWM_ABORT:
-                aborted = f"PWM sature (G={pl:.0f} D={pr:.0f})"
+                aborted = f"PWM saturated (L={pl:.0f} R={pr:.0f})"
                 break
             if abs(node.l[1]) > RPM_ABORT or abs(node.r[1]) > RPM_ABORT:
-                aborted = f"RPM emballe (G={node.l[1]:.0f} D={node.r[1]:.0f})"
+                aborted = f"RPM runaway (L={node.l[1]:.0f} R={node.r[1]:.0f})"
                 break
             now = time.time()
             if now - last >= 0.2:
@@ -108,10 +108,10 @@ def main():
     finally:
         node.stop()
 
-    print("\n----- FIN -----")
-    print(f"abort = {aborted if aborted else 'non (duree ecoulee)'}")
-    print(f"dernier pwm  G={node.pwm[0]:+.0f}  D={node.pwm[1]:+.0f}")
-    print(f"dernier rpm  G={node.l[1]:+.1f}  D={node.r[1]:+.1f}")
+    print("\n----- END -----")
+    print(f"abort = {aborted if aborted else 'no (duration elapsed)'}")
+    print(f"last pwm  L={node.pwm[0]:+.0f}  R={node.pwm[1]:+.0f}")
+    print(f"last rpm  L={node.l[1]:+.1f}  R={node.r[1]:+.1f}")
     node.stop()
     node.destroy_node()
     rclpy.shutdown()

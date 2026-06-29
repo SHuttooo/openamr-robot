@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""Test de SIGNE des encodeurs (roues en l'air, a la main, SANS alim 24V).
+"""Encoder SIGN test (wheels off the ground, by hand, WITHOUT 24V power).
 
-But : verifier que rouler une roue dans le sens AVANT du robot donne une
-vitesse mesuree POSITIVE. Si la droite sort negative en avant ->
-MOTOR2_ENCODER_INV est faux -> cause probable de l'emballement.
+Goal: verify that rolling a wheel in the robot's FORWARD direction gives a
+POSITIVE measured speed. If the right one comes out negative when going
+forward -> MOTOR2_ENCODER_INV is wrong -> likely cause of the runaway.
 
-Lance dans TON terminal :  python3 ~/sign_test.py
-Affiche en continu vg et vd signes. Ctrl-C pour arreter.
+Run in YOUR terminal:  python3 ~/sign_test.py
+Continuously displays signed vl and vr. Ctrl-C to stop.
 
-    v_droite = lin.x + ang.z * (LR/2)
-    v_gauche = lin.x - ang.z * (LR/2)
+    v_right = lin.x + ang.z * (LR/2)
+    v_left  = lin.x - ang.z * (LR/2)
 """
 import time
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 
-LR = 0.45
+LR = 0.46   # wheel separation (m), matches firmware LR_WHEELS_DISTANCE (was 0.45 — Raj review PR3)
 HALF = LR / 2.0
 SEUIL = 0.01
 
@@ -37,18 +37,18 @@ class Mon(Node):
 
 def fleche(v):
     if v > SEUIL:
-        return "AVANT (+)"
+        return "FORWARD (+)"
     if v < -SEUIL:
-        return "ARRIERE(-)"
-    return "  ~0      "
+        return "BACKWARD(-)"
+    return "  ~0       "
 
 
 def main():
     rclpy.init()
     node = Mon()
-    print("Roule chaque roue dans le sens AVANT du robot.")
-    print("Attendu : les DEUX doivent afficher AVANT (+).")
-    print("Ctrl-C pour arreter.\n", flush=True)
+    print("Roll each wheel in the robot's FORWARD direction.")
+    print("Expected: BOTH should display FORWARD (+).")
+    print("Ctrl-C to stop.\n", flush=True)
     t0 = time.time()
     last = -1.0
     try:
@@ -57,8 +57,8 @@ def main():
             now = time.time()
             if now - last >= 0.4:
                 last = now
-                print(f"GAUCHE vg={node.vl:+.3f} {fleche(node.vl)}   |   "
-                      f"DROITE vd={node.vr:+.3f} {fleche(node.vr)}", flush=True)
+                print(f"LEFT vl={node.vl:+.3f} {fleche(node.vl)}   |   "
+                      f"RIGHT vr={node.vr:+.3f} {fleche(node.vr)}", flush=True)
     except KeyboardInterrupt:
         pass
     node.destroy_node()

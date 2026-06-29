@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Relais odom -> /odom + TF odom->base_link.
-Le firmware publie /odom/unfiltered (Odometry avec pose integree, roues seules).
-Nav2 attend /odom + la TF odom->base_link. Ce noeud fait le pont.
-(Amelioration future : remplacer par un EKF robot_localization fusionnant IMU.)
+"""⚠️ LEGACY / OBSOLETE (2026-06-26) — replaced by the robot_localization EKF (ekf.yaml).
+The EKF already publishes /odom + the odom->base_link TF. Running this node IN ADDITION
+creates a SECOND publisher of the odom->base_link TF -> flickering TF, unstable AMCL/costmaps.
+Do NOT run alongside the EKF bring-up. Kept only for historical reference.
+
+Relay odom -> /odom + TF odom->base_link.
+The firmware publishes /odom/unfiltered (Odometry with integrated pose, wheels only).
+Nav2 expects /odom + the odom->base_link TF. This node bridges the two.
+(Superseded by a robot_localization EKF fusing the IMU.)
 """
 import rclpy
 from rclpy.node import Node

@@ -10,7 +10,8 @@ sends low-current logic signals to the drivers; the drivers deliver the 24 V pow
   nameplate)**, **3000 rpm** motor + **~30:1 spur gearbox** → ~100 rpm wheel, rated **3.8 A**. U/V/W +
   Hall. (LEFT=M1, RIGHT=M2)
 - **Drivers**: **ZBLD.C20-120L2R** ×2 (24 V, 7.5 A, 120 W). Full specs + datasheets:
-  [components-bom.md](components-bom.md).
+  [components-bom.md](components-bom.md). **Red LED / fault blink codes:**
+  [motor-driver-fault-codes.md](motor-driver-fault-codes.md).
 - ⚠️ **Pole pairs = 5** → verify the driver **DIP SW4/SW5** are set to 5 pole pairs (read the silkscreen
   table on the driver). A wrong pole-pair setting throws off the driver's closed-loop speed scaling.
 

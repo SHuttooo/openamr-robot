@@ -2,25 +2,25 @@
 
 *Last updated: 2026-06-20.*
 
-## 🔋 État de charge batterie — SEUILS (24 V plomb) — LIRE AVANT TOUT TEST NAV
-Système 24 V = 2× plomb 12 V en série. Tension **au repos** (sans charge) :
+## 🔋 Battery state of charge — THRESHOLDS (24 V lead-acid) — READ BEFORE ANY NAV TEST
+24 V system = 2× 12 V lead-acid in series. **At-rest** voltage (no load):
 
-| Tension repos | État | Pour la navigation |
+| At-rest voltage | State | For navigation |
 |---|---|---|
-| **~25,5–26 V** | pleine charge | ✅ OK pour tester |
-| **~24,5 V** | ~70 % | ✅ acceptable |
-| **~24 V** | ~50 % | ⚠️ limite |
-| **≤ 23,5 V** | déchargé (~30 %) | ❌ **NE PAS tester la nav** |
+| **~25.5–26 V** | full charge | ✅ OK to test |
+| **~24.5 V** | ~70 % | ✅ acceptable |
+| **~24 V** | ~50 % | ⚠️ marginal |
+| **≤ 23.5 V** | discharged (~30 %) | ❌ **DO NOT test nav** |
 
-⚠️ C'est la tension **au repos** : **sous charge (moteurs), elle chute encore** (souvent −1 à −2 V en pointe,
-cf le pack qui sague). En dessous de ~22 V sous charge → drivers en sous-tension → **couple mou + roue
-gauche (faux-contact) décroche → le robot ne suit pas le plan → percute des obstacles pourtant évités par
-la nav.** **RÈGLE : viser ≥ 25 V au repos avant tout test de navigation/évitement.** Sinon on debugge Nav2
-pour rien (déjà arrivé : le vrai problème était le 24 V, pas la nav).
+⚠️ This is the **at-rest** voltage: **under load (motors) it drops further** (often −1 to −2 V at peaks,
+since the pack sags). Below ~22 V under load → drivers undervoltage → **weak torque + left wheel
+(loose contact) drops out → the robot does not follow the plan → it hits obstacles that nav was
+actually avoiding.** **RULE: aim for ≥ 25 V at rest before any navigation/avoidance test.** Otherwise we
+debug Nav2 for nothing (already happened: the real problem was the 24 V, not nav).
 
-**Relevé 2026-06-20 (fin de session)** : batterie à **23,4 V au repos → trop bas**. Tout test d'évitement
-de cette session est non concluant tant que la batterie n'est pas rechargée (~25,5 V). À reprendre après
-charge.
+**Reading 2026-06-20 (end of session)**: battery at **23.4 V at rest → too low**. Every avoidance test
+from this session is inconclusive until the battery is recharged (~25.5 V). To be resumed after
+charging.
 
 ## Power architecture — VERIFIED 2026-06-19
 ```

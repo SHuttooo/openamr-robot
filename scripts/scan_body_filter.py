@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""Filtre lidar OpenAMR : /scan -> /scan_filtered.
+"""OpenAMR lidar filter: /scan -> /scan_filtered.
 
-Le lidar est monte TOURNE de 180deg : en repere lidar,
-  0deg   = ARRIERE du robot
-  +-180  = AVANT du robot
-  -90    = gauche, +90 = droite
+The lidar is mounted ROTATED by 180deg: in the lidar frame,
+  0deg   = REAR of the robot
+  +-180  = FRONT of the robot
+  -90    = left, +90 = right
 
-Deux types de secteurs (mesures le 2026-06-18 via profil par angle) :
+Two kinds of sectors (measured 2026-06-18 via per-angle profiling):
 
-1) FULL_MASK_SECTORS : la coque arriere bouche TOUT -> rien de reel derriere.
-   On masque a TOUTES les distances (sinon on garde la coque, ex. le retour
-   central a 0.72 m qui EST la coque, pas un mur).
-     arriere : -45 .. +45  (centre 0.72 m, coins 0.24-0.30 m)
+1) FULL_MASK_SECTORS: the rear shell blocks EVERYTHING -> nothing real behind.
+   We mask at ALL distances (otherwise we keep the shell, e.g. the central
+   return at 0.72 m which IS the shell, not a wall).
+     rear: -45 .. +45  (center 0.72 m, corners 0.24-0.30 m)
 
-2) CLOSE_MASK_SECTORS : poteaux fins lateraux (0.17-0.18 m) MAIS de vrais murs
-   sont visibles plus loin dans la meme direction -> on n'enleve que le proche
-   (< CLOSE_MAX), on garde les murs.
-     cote gauche : -96 .. -73
-     cote droit  : +73 .. +96
+2) CLOSE_MASK_SECTORS: thin lateral posts (0.17-0.18 m) BUT real walls
+   are visible farther away in the same direction -> we only remove the close
+   ones (< CLOSE_MAX), keeping the walls.
+     left side:  -96 .. -73
+     right side: +73 .. +96
 
-Editer ces listes en regardant RViz pour affiner.
+Edit these lists while watching RViz to fine-tune.
 """
 import math
 import rclpy
@@ -27,9 +27,9 @@ from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy, HistoryPolicy
 
-FULL_MASK_SECTORS_DEG = [(-45.0, 49.0)]            # coque arriere : tout enleve (droite va a +49)
-CLOSE_MASK_SECTORS_DEG = [(-96.0, -73.0), (73.0, 96.0)]  # poteaux : seulement le proche
-CLOSE_MAX = 0.40   # dans les secteurs "close", on enleve seulement < 0.40 m (= poteau)
+FULL_MASK_SECTORS_DEG = [(-45.0, 49.0)]            # rear shell: remove everything (right goes to +49)
+CLOSE_MASK_SECTORS_DEG = [(-96.0, -73.0), (73.0, 96.0)]  # posts: only the close part
+CLOSE_MAX = 0.40   # in the "close" sectors, only remove < 0.40 m (= post)
 
 
 class ScanBodyFilter(Node):
@@ -37,14 +37,14 @@ class ScanBodyFilter(Node):
         super().__init__("scan_body_filter")
         self.full = [(math.radians(a), math.radians(b)) for a, b in FULL_MASK_SECTORS_DEG]
         self.close = [(math.radians(a), math.radians(b)) for a, b in CLOSE_MASK_SECTORS_DEG]
-        # Publier en RELIABLE : sert la costmap (reliable) ET AMCL/RViz (best_effort).
-        # En best_effort, la costmap (qui s'abonne reliable) ne recevait RIEN -> costmaps vides.
+        # Publish RELIABLE: serves the costmap (reliable) AND AMCL/RViz (best_effort).
+        # In best_effort, the costmap (which subscribes reliable) received NOTHING -> empty costmaps.
         pub_qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE, history=HistoryPolicy.KEEP_LAST)
         self.pub = self.create_publisher(LaserScan, "/scan_filtered", pub_qos)
         self.sub = self.create_subscription(LaserScan, "/scan", self.cb, qos_profile_sensor_data)
         self.get_logger().info(
-            f"scan_body_filter actif | arriere(full)={FULL_MASK_SECTORS_DEG} | "
-            f"cotes(<{CLOSE_MAX}m)={CLOSE_MASK_SECTORS_DEG} -> /scan_filtered")
+            f"scan_body_filter active | rear(full)={FULL_MASK_SECTORS_DEG} | "
+            f"sides(<{CLOSE_MAX}m)={CLOSE_MASK_SECTORS_DEG} -> /scan_filtered")
 
     def in_any(self, sectors, ang):
         for lo, hi in sectors:
@@ -70,9 +70,9 @@ class ScanBodyFilter(Node):
                 continue
             ang = m.angle_min + i * m.angle_increment
             if self.in_any(self.full, ang):
-                r[i] = inf                       # coque arriere : tout enleve
+                r[i] = inf                       # rear shell: remove everything
             elif v < CLOSE_MAX and self.in_any(self.close, ang):
-                r[i] = inf                       # poteau lateral proche
+                r[i] = inf                       # close lateral post
         out.ranges = r
         out.intensities = m.intensities
         self.pub.publish(out)

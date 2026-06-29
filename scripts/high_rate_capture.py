@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
-"""Capture 50 Hz autour d'un jerk de la roue droite.
-ROUES EN L'AIR. 24V. Main sur la coupure.
+"""50 Hz capture around a right-wheel jerk. WHEELS IN THE AIR. 24V. Hand on the cutoff.
 
-Commande 0.05 m/s, enregistre CHAQUE message /debug/right (pleine cadence),
-detecte le 1er jerk (|rpm droit| > JERK), continue un peu, puis dump la fenetre
-autour du jerk : counts bruts droits echantillon par echantillon + delta.
+Commands a small speed, records EVERY /debug/right message (full rate). On the FIRST jerk
+(|right rpm| > JERK) it STOPS IMMEDIATELY (zero command) and then logs the coast-down passively
+(no further motion). Reads the window of raw right counts around the jerk.
 
-Interpretation :
-  - counts qui SAUTENT puis REVIENNENT (delta +N puis -N) sur 1-2 echantillons,
-    net ~0  -> FAUSSE impulsion (glitch electrique encodeur droit / masse).
-  - counts qui derivent franchement dans un sens -> VRAI mouvement (driver/moteur).
+Safety (Raj review PR3/PR5):
+  - requires --arm (no powered motion otherwise);
+  - validates finite + bounded speed/duration;
+  - requires fresh /debug telemetry before any motion;
+  - zero command is sent at the trigger instant, then only passive logging.
 
-Usage : python3 ~/high_rate_capture.py [vitesse] [duree_max]
-  defaut : 0.05 m/s, 10 s
+Interpretation:
+  - counts that JUMP then RETURN (delta +N then -N), net ~0  -> FALSE pulse (electrical glitch).
+  - counts that drift clearly in one direction               -> REAL motion (driver/motor).
+
+Usage: python3 ~/high_rate_capture.py --arm [speed] [max_duration]   (default 0.05 m/s, 10 s)
 """
+import math
 import sys
 import time
 import rclpy
@@ -21,11 +25,11 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from geometry_msgs.msg import Twist, Vector3
 
-SPEED = float(sys.argv[1]) if len(sys.argv) > 1 else 0.05
-DUR_MAX = float(sys.argv[2]) if len(sys.argv) > 2 else 10.0
-JERK = 30.0          # |rpm droit| au-dela = jerk detecte
-AFTER = 0.4          # s a continuer apres le jerk
+JERK = 30.0          # |right rpm| beyond = jerk detected -> immediate stop
+AFTER = 0.4          # s of PASSIVE coast-down logging after the stop (zero command)
 PWM_ABORT = 850
+SPEED_LIMIT = 0.30   # m/s — conservative ceiling for this diagnostic
+DUR_LIMIT = 30.0     # s
 
 BE = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                 history=HistoryPolicy.KEEP_LAST, depth=10)
@@ -70,40 +74,71 @@ class Cap(Node):
 
 
 def main():
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    armed = '--arm' in sys.argv
+    speed = float(args[0]) if len(args) > 0 else 0.05
+    dur = float(args[1]) if len(args) > 1 else 10.0
+
+    # --- safety gates (Raj review PR3): arm + bounds + finite ---
+    if not armed:
+        print("REFUSED: powered motion requires --arm. Re-run: high_rate_capture.py --arm [speed] [dur]")
+        return
+    if not (math.isfinite(speed) and abs(speed) <= SPEED_LIMIT):
+        print(f"REFUSED: speed {speed} out of range (need finite, |v| <= {SPEED_LIMIT} m/s).")
+        return
+    if not (math.isfinite(dur) and 0.0 < dur <= DUR_LIMIT):
+        print(f"REFUSED: duration {dur} out of range (need finite, 0 < dur <= {DUR_LIMIT} s).")
+        return
+
     rclpy.init()
     node = Cap()
-    t0 = time.time()
-    while time.time() - t0 < 0.6:
+
+    # require FRESH telemetry before any motion (Raj PR3): a missing /debug topic must not look
+    # like a stopped wheel -> refuse to drive if nothing arrives.
+    t = time.time()
+    while time.time() - t < 2.0 and not node.samples:
         rclpy.spin_once(node, timeout_sec=0.05)
+    if not node.samples:
+        print("REFUSED: no /debug/right telemetry (agent/firmware down?). No command sent.")
+        node.destroy_node()
+        rclpy.shutdown()
+        return
+    node.samples.clear()
     node.t0 = time.time()
 
-    print(f"CMD {SPEED:+.3f} m/s, capture 50 Hz, jerk si |rpm_D|>{JERK}", flush=True)
+    print(f"CMD {speed:+.3f} m/s, 50 Hz capture, STOP on |rpm_R|>{JERK}", flush=True)
     t0 = time.time()
     try:
-        while time.time() - t0 < DUR_MAX:
-            node.send(SPEED)
-            rclpy.spin_once(node, timeout_sec=0.02)
+        while time.time() - t0 < dur:
+            if node.jerk_t is not None:
+                print(">>> jerk detected -> IMMEDIATE STOP", flush=True)
+                break
             if abs(node.pwmR) > PWM_ABORT or abs(node.pwmL) > PWM_ABORT:
-                print(">>> pwm sature, abort", flush=True)
+                print(">>> pwm saturated -> abort", flush=True)
                 break
-            if node.jerk_t is not None and (time.time() - node.t0) > node.jerk_t + AFTER:
-                break
+            node.send(speed)
+            rclpy.spin_once(node, timeout_sec=0.02)
     except KeyboardInterrupt:
         pass
     finally:
         node.stop()
 
+    # passive post-stop logging: keep recording the coast-down, command ZERO only.
+    t = time.time()
+    while time.time() - t < AFTER:
+        node.send(0.0)
+        rclpy.spin_once(node, timeout_sec=0.02)
+
     s = node.samples
-    print(f"\n{len(s)} echantillons. jerk_t = {node.jerk_t}")
+    print(f"\n{len(s)} samples. jerk_t = {node.jerk_t}")
     if node.jerk_t is None:
-        print("Aucun jerk detecte (pas d'emballement sur ce run).")
+        print("No jerk detected (no runaway on this run).")
     else:
-        # indice du 1er echantillon au jerk
         ji = next((i for i, x in enumerate(s) if x[0] >= node.jerk_t), len(s) - 1)
         a = max(0, ji - 20)
         b = min(len(s), ji + 12)
-        print("Fenetre autour du jerk (>>> = echantillon du jerk) :")
-        print("   t(s)  | cntL    dL | cntR     dR  | rpm_D | pwm_D")
+        print("Window around the jerk (>>> = jerk sample):")
+        print("   t(s)  | cntL    dL | cntR     dR  | rpm_R | pwm_R")
         print("---------+------------+--------------+-------+------")
         prevL = prevR = None
         for i in range(a, b):

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Vue ASCII du scan + estimation de l'AVANT par l'arc ouvert.
+"""ASCII view of the scan + FRONT estimation from the open arc.
 
-Binne le scan PAR ANGLE (robuste au nb de points variable). Pour chaque secteur
-de 10 deg, affiche la distance min. Le corps du robot bloque une partie (retours
-tres proches / absents) -> l'arc OUVERT (vers la piece) a son centre = l'avant.
+Bins the scan BY ANGLE (robust to a varying point count). For each 10 deg
+sector, shows the min distance. The robot body blocks part of it (very close /
+absent returns) -> the OPEN arc (toward the room) has its center = the front.
 
-Lance :  python3 ~/lidar_view.py
-Astuce : place ton objet droit devant, il apparaitra comme un creux net de
-distance dans un secteur -> ca confirme ou est l'avant.
+Run:  python3 ~/lidar_view.py
+Tip: place your object straight ahead, it will show up as a clear distance dip
+in a sector -> this confirms where the front is.
 """
 import math
 import time
@@ -18,15 +18,15 @@ from sensor_msgs.msg import LaserScan
 
 QOS = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                  history=HistoryPolicy.KEEP_LAST, depth=10)
-SECT = 10            # degres par secteur
-BLOCK = 0.35         # m : en dessous = bloque (corps du robot)
+SECT = 10            # degrees per sector
+BLOCK = 0.35         # m: below = blocked (robot body)
 
 
 class V(Node):
     def __init__(self):
         super().__init__('lidar_view')
         self.create_subscription(LaserScan, '/scan', self.cb, QOS)
-        self.acc = {}     # secteur (deg, multiple de SECT, -180..170) -> min dist
+        self.acc = {}     # sector (deg, multiple of SECT, -180..170) -> min dist
 
     def cb(self, msg):
         for i, r in enumerate(msg.ranges):
@@ -46,29 +46,29 @@ def main():
         rclpy.spin_once(node, timeout_sec=0.05)
 
     sectors = list(range(-180, 180, SECT))
-    print("\nSCAN — distance min par secteur (repere LIDAR, 0deg = avant du capteur)")
-    print(" angle |  dist  | (mur/objet)            etat")
+    print("\nSCAN — min distance per sector (LIDAR frame, 0deg = sensor front)")
+    print(" angle |  dist  | (wall/object)          state")
     print("-------+--------+--------------------------------")
     open_secs = []
     for s in sectors:
         d = node.acc.get(s)
         if d is None:
-            print(f" {s:+4d}  |   --   |                          (rien)")
+            print(f" {s:+4d}  |   --   |                          (none)")
         elif d < BLOCK:
-            print(f" {s:+4d}  | {d:5.2f}  | {'#'*min(int(d*10),24):24s} BLOQUE")
+            print(f" {s:+4d}  | {d:5.2f}  | {'#'*min(int(d*10),24):24s} BLOCKED")
         else:
-            print(f" {s:+4d}  | {d:5.2f}  | {'#'*min(int(d*10),24):24s} ouvert")
+            print(f" {s:+4d}  | {d:5.2f}  | {'#'*min(int(d*10),24):24s} open")
             open_secs.append(s)
 
-    # centre de l'arc ouvert (gestion du wrap +-180)
+    # center of the open arc (handles the +-180 wrap)
     if open_secs:
         xs = [math.cos(math.radians(s + SECT / 2)) for s in open_secs]
         ys = [math.sin(math.radians(s + SECT / 2)) for s in open_secs]
         center = math.degrees(math.atan2(sum(ys), sum(xs)))
         print("-------+--------+--------------------------------")
-        print(f"Centre de l'arc OUVERT ~ {center:+.0f} deg  (= avant probable du robot)")
+        print(f"Center of the OPEN arc ~ {center:+.0f} deg  (= likely robot front)")
         print(f" -> yaw TF base_link->lidar_link ~ {-center:+.0f} deg = {math.radians(-center):+.3f} rad")
-        print("(a confirmer : place l'objet droit devant, il doit tomber pres de ce centre)")
+        print("(to confirm: place the object straight ahead, it should fall near this center)")
     node.destroy_node()
     rclpy.shutdown()
 

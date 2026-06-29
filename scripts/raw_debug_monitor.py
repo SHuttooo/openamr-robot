@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Moniteur des topics debug du firmware (counts bruts par roue).
-Roues en l'air, a la main, SANS alim 24V.
+"""Monitor for the firmware debug topics (raw counts per wheel).
+Wheels off the ground, turned by hand, WITHOUT 24V power.
 
-/debug/left  (Vector3) : x=rpm cible, y=rpm mesure, z=counts bruts  (MOTOR1 gauche)
-/debug/right (Vector3) : idem droite (MOTOR2)
+/debug/left  (Vector3): x=target rpm, y=measured rpm, z=raw counts  (MOTOR1 left)
+/debug/right (Vector3): same for right (MOTOR2)
 
-Affiche en direct, ~3 Hz. Ctrl-C pour arreter.
-But : verifier que les counts (z) bougent quand on tourne la roue.
+Live display, ~3 Hz. Ctrl-C to stop.
+Goal: verify that the counts (z) move when you turn the wheel.
 """
 import time
 import rclpy
@@ -14,7 +14,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from geometry_msgs.msg import Vector3
 
-# Les publishers debug du firmware sont en BEST_EFFORT -> on doit matcher.
+# The firmware debug publishers are BEST_EFFORT -> we must match.
 QOS = QoSProfile(
     reliability=ReliabilityPolicy.BEST_EFFORT,
     history=HistoryPolicy.KEEP_LAST,
@@ -40,8 +40,8 @@ class Mon(Node):
 def main():
     rclpy.init()
     node = Mon()
-    print("Tourne chaque roue a la main : les COUNTS (cnt) doivent bouger.")
-    print("Ctrl-C pour arreter.\n", flush=True)
+    print("Turn each wheel by hand: the COUNTS (cnt) should move.")
+    print("Ctrl-C to stop.\n", flush=True)
     last = -1.0
     try:
         while True:
@@ -51,8 +51,8 @@ def main():
                 last = now
                 lc, lm, lz = node.l
                 rc, rm, rz = node.r
-                print(f"G cible={lc:+6.1f} mes={lm:+6.1f} cnt={int(lz):+9d}   |   "
-                      f"D cible={rc:+6.1f} mes={rm:+6.1f} cnt={int(rz):+9d}",
+                print(f"L target={lc:+6.1f} meas={lm:+6.1f} cnt={int(lz):+9d}   |   "
+                      f"R target={rc:+6.1f} meas={rm:+6.1f} cnt={int(rz):+9d}",
                       flush=True)
     except KeyboardInterrupt:
         pass

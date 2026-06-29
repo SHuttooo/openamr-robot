@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Launch architecture audit — openamr-platform-sw</title>
+<style>
+  :root{
+    --sim:#1d6fb8; --sim-bg:#e7f1fa;
+    --real:#1f8a4c; --real-bg:#e6f5ec;
+    --shared:#6a4ca8; --shared-bg:#efe9f8;
+    --warn:#c9700a; --warn-bg:#fdf1e1;
+    --bad:#c0392b; --bad-bg:#fbe9e7;
+    --ink:#1b1f24; --muted:#5b6671; --line:#d7dde3; --bg:#f6f8fa;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+       background:var(--bg);margin:0;line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto;padding:32px 24px 80px}
+  h1{font-size:26px;margin:0 0 4px}
+  h2{font-size:20px;margin:40px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;margin:24px 0 8px}
+  .sub{color:var(--muted);margin:0 0 8px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;
+       background:#eef1f4;padding:1px 5px;border-radius:4px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0;
+        box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 0}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
+        padding:3px 10px;border-radius:999px}
+  .pill.sim{background:var(--sim-bg);color:var(--sim)}
+  .pill.real{background:var(--real-bg);color:var(--real)}
+  .pill.shared{background:var(--shared-bg);color:var(--shared)}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .pill.bad{background:var(--bad-bg);color:var(--bad)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#f0f3f6;font-weight:600}
+  td.c{text-align:center}
+  /* trees */
+  .tree{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.7}
+  .node{border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-left:6px}
+  .node.sim{border-color:var(--sim)} .node.real{border-color:var(--real)}
+  .node.shared{border-color:var(--shared)} .node.bad{border-color:var(--bad)}
+  .node.warn{border-color:var(--warn)}
+  .tag{font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+  .tag.sim{background:var(--sim-bg);color:var(--sim)}
+  .tag.real{background:var(--real-bg);color:var(--real)}
+  .tag.shared{background:var(--shared-bg);color:var(--shared)}
+  .tag.dup{background:var(--bad-bg);color:var(--bad)}
+  .tag.warn{background:var(--warn-bg);color:var(--warn)}
+  .file{font-weight:700}
+  .ann{color:var(--muted);font-weight:400}
+  .sev{font-weight:700;padding:2px 8px;border-radius:5px;font-size:12px;white-space:nowrap}
+  .sev.hi{background:var(--bad-bg);color:var(--bad)}
+  .sev.md{background:var(--warn-bg);color:var(--warn)}
+  .sev.lo{background:#eef1f4;color:var(--muted)}
+  .verdict{font-size:15px;font-weight:600;padding:12px 16px;border-radius:8px;margin:6px 0}
+  .verdict.ok{background:var(--real-bg);border:1px solid #aee0c0}
+  .verdict.warn{background:var(--warn-bg);border:1px solid #f0d3a6}
+  ul{margin:6px 0 6px 0;padding-left:22px} li{margin:3px 0}
+  .meta{font-size:12px;color:var(--muted);margin-top:6px}
+  .kbd{background:#2b2f36;color:#e6edf3;padding:10px 12px;border-radius:8px;font-size:12.5px;
+       font-family:ui-monospace,monospace;overflow-x:auto;white-space:pre;margin:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Audit — launch architecture</h1>
+<p class="sub"><code>openamr-platform-sw/ros2/src</code> · state as of 2026-06-26 · actual mapping of the <code>IncludeLaunchDescription</code> (excluding mentions in comments)</p>
+
+<div class="card">
+  <strong>Question asked:</strong> is it clear&nbsp;? are there duplicates&nbsp;? is the sim/real coexistence clean&nbsp;?
+  <div class="legend">
+    <span class="pill sim">■ SIM</span>
+    <span class="pill real">■ REAL</span>
+    <span class="pill shared">■ SHARED (sim+real)</span>
+    <span class="pill warn">▲ point of attention</span>
+    <span class="pill bad">✕ duplicate / conflict</span>
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<h2>1. One-page verdict</h2>
+
+<div class="verdict warn">
+  ▲ Overall consistent on the REAL side (1 command = everything), but <u>asymmetric on the SIM side</u>:
+  there are <b>TWO parallel simulation worlds</b> that each bring up Gazebo + Nav2 through different paths.
+</div>
+
+<table>
+<tr><th>Criterion</th><th class="c">Rating</th><th>Detail</th></tr>
+<tr>
+  <td>Sim/real coexistence</td>
+  <td class="c"><span class="sev md">medium</span></td>
+  <td>The selector <code>bringup.launch.py sim:=true|false</code> is clean and shares the same Nav2 + the same <code>nav2_params.yaml</code>.
+      BUT the SIM docking is not plugged into it: it lives in a <i>second</i> complete launcher (<code>bringup_sim.launch.py</code>)
+      that brings up Gazebo+Nav2 via another wrapper. On the REAL side, docking IS integrated (<code>use_docking</code>). → asymmetry.</td>
+</tr>
+<tr>
+  <td>Duplicates</td>
+  <td class="c"><span class="sev md">2 real</span></td>
+  <td>(a) Two competing SIM Nav2 stacks&nbsp;; (b) two different map injection mechanisms. Plus 2 justified "false duplicates" (camera_info bridge, apriltag sim/real).</td>
+</tr>
+<tr>
+  <td>Clarity</td>
+  <td class="c"><span class="sev md">medium</span></td>
+  <td>4 ways to launch the sim coexist (selector, 1-command, 3-terminals, isolated layers). None broken, but nothing indicates which one is "the right one" → confusion (this is exactly the question that triggered this audit).</td>
+</tr>
+<tr>
+  <td>Goal routing (<code>/goal_pose</code>)</td>
+  <td class="c"><span class="sev hi">fragile</span></td>
+  <td><code>navigation_launch</code> remaps the <code>bt_navigator</code> goal onto <code>/goal_pose_nav</code>. As a result a forwarder is REQUIRED. Two forwarders exist (relay vs dock_trigger) and must NEVER run together.</td>
+</tr>
+</table>
+
+<!-- ====================================================== -->
+<h2>2. Inventory — 14 launch files, 7 packages</h2>
+
+<table>
+<tr><th>Package</th><th>Launch file</th><th class="c">Role</th><th>Type</th></tr>
+<tr><td rowspan="2">openamrobot_bringup</td><td><code>bringup.launch.py</code></td><td class="c"><span class="pill shared">SELECTOR</span></td><td>Main entry point (integration). <code>sim:=true|false</code>.</td></tr>
+<tr><td><code>real_bringup.launch.py</code></td><td class="c"><span class="pill real">data source</span></td><td>drivers + perception + camera + EKF + static TFs.</td></tr>
+
+<tr><td rowspan="4">openamrobot_nav2</td><td><code>localization_launch.py</code></td><td class="c"><span class="pill shared">building block</span></td><td>map_server + AMCL.</td></tr>
+<tr><td><code>navigation_launch.py</code></td><td class="c"><span class="pill shared">building block</span></td><td>planner + controller + BT + costmaps + lifecycle.</td></tr>
+<tr><td><code>sim_bringup_launch.py</code></td><td class="c"><span class="pill sim">Nav2 wrapper</span></td><td>localization + navigation + RViz, <b>hardcoded use_sim_time=true</b>.</td></tr>
+<tr><td><code>online_async_launch.py</code></td><td class="c"><span class="pill warn">SLAM</span></td><td>slam_toolbox (mapping). Outside the nav flow.</td></tr>
+
+<tr><td>openamrobot_gazebo</td><td><code>gz_simulator.launch.py</code></td><td class="c"><span class="pill sim">data source</span></td><td>Gazebo + ros_gz_bridge + robot_state_publisher.</td></tr>
+
+<tr><td rowspan="6">openamrobot_docking</td><td><code>bringup_sim.launch.py</code></td><td class="c"><span class="pill sim">1-COMMAND</span></td><td>Gazebo + sim_bringup + docking, via TimerActions. The historical "all in one".</td></tr>
+<tr><td><code>openamrobot_docking.launch.py</code></td><td class="c"><span class="pill sim">docking layer</span></td><td>camera_info bridge + sync + apriltag_sim + dock_pose + dock_trigger.</td></tr>
+<tr><td><code>docking_real.launch.py</code></td><td class="c"><span class="pill real">docking layer</span></td><td>apriltag(real) + dock_pose + dock_trigger. No Gazebo.</td></tr>
+<tr><td><code>apriltag.launch.yml</code></td><td class="c"><span class="pill real">building block</span></td><td>apriltag_node on <code>/camera/image_raw</code> (real camera).</td></tr>
+<tr><td><code>apriltag_sim.launch.yml</code></td><td class="c"><span class="pill sim">building block</span></td><td>apriltag_node on <code>/rgb_image</code> (Gazebo camera).</td></tr>
+<tr><td><code>detected_dock_pose_publisher.launch.py</code></td><td class="c"><span class="pill shared">building block</span></td><td>TF dock → <code>/detected_dock_pose</code>.</td></tr>
+
+<tr><td>openamrobot_drivers</td><td><code>drivers.launch.py</code></td><td class="c"><span class="pill real">building block</span></td><td>micro-ROS agent (Teensy) + RPLIDAR.</td></tr>
+<tr><td rowspan="2">openamrobot_perception</td><td><code>camera.launch.py</code></td><td class="c"><span class="pill real">building block</span></td><td>camera_ros (IMX708).</td></tr>
+<tr><td><code>scan_body_filter.launch.py</code></td><td class="c"><span class="pill real">building block</span></td><td><code>/scan</code> → <code>/scan_filtered</code>.</td></tr>
+</table>
+
+<!-- ====================================================== -->
+<h2>3. The 4 entry points (actual expansion trees)</h2>
+
+<h3>A · <code>bringup.launch.py</code> — the selector (the integration)</h3>
+<p class="sub">The only launcher that switches sim↔real on the same Nav2. <code>OpaqueFunction</code> → chooses the source based on <code>sim</code>.</p>
+
+<div class="card tree">
+  <div class="node sim"><span class="file">sim:=true</span> <span class="tag sim">SIM</span>
+    <div class="node sim">└ gz_simulator.launch.py <span class="ann"># Gazebo + bridge + RSP</span></div>
+    <div class="node bad">└ Node relay <code>/goal_pose → /goal_pose_nav</code> <span class="tag dup">FORWARDER #1</span></div>
+    <div class="node shared">└ localization_launch.py <span class="ann"># map='', params=<i>temp</i>, sim_time=true</span></div>
+    <div class="node shared">└ navigation_launch.py <span class="ann"># sim_time=true, use_scan_filter=true</span></div>
+    <div class="node sim">└ rviz2 <span class="ann"># if use_rviz</span></div>
+  </div>
+  <div class="node real" style="margin-top:10px"><span class="file">sim:=false</span> <span class="tag real">REAL</span> <span class="ann">(default)</span>
+    <div class="node real">└ real_bringup.launch.py
+      <div class="node real">└ drivers.launch.py · scan_body_filter · camera.launch.py · EKF · static TFs</div>
+    </div>
+    <div class="node real">└ <b>if use_docking=true</b> → docking_real.launch.py <span class="tag real">FORWARDER #2 (dock_trigger)</span>
+      <div class="node real">└ apriltag.launch.yml · detected_dock_pose · dock_trigger <span class="ann"># dock_trigger owns /goal_pose</span></div>
+    </div>
+    <div class="node bad">└ <b>otherwise</b> → relay <code>/goal_pose → /goal_pose_nav</code> <span class="tag dup">FORWARDER #1</span></div>
+    <div class="node shared">└ localization_launch.py <span class="ann"># map='', params=<i>temp</i> (map_server bug fix)</span></div>
+    <div class="node shared">└ navigation_launch.py <span class="ann"># sim_time=false, use_scan_filter=false</span></div>
+  </div>
+  <div class="meta">⇒ On the REAL side: <b>docking integrated</b> via <code>use_docking</code>. On the SIM side: <b>no docking</b>, just the relay. ← the asymmetry.</div>
+</div>
+
+<h3>B · <code>bringup_sim.launch.py</code> (docking) — the historical "1 entire command"</h3>
+<div class="card tree">
+  <div class="node sim"><span class="file">bringup_sim.launch.py</span> <span class="tag sim">full SIM + docking</span>
+    <div class="node sim">└ t=0&nbsp;: gz_simulator.launch.py</div>
+    <div class="node warn">└ t=8s&nbsp;: sim_bringup_launch.py <span class="tag warn">2nd Nav2 stack</span>
+      <div class="node shared">└ localization_launch.py <span class="ann"># map=my_map.yaml <b>passed directly</b></span></div>
+      <div class="node shared">└ navigation_launch.py <span class="ann"># use_scan_filter = default (not passed)</span></div>
+      <div class="node sim">└ rviz2</div>
+    </div>
+    <div class="node sim">└ t=16s&nbsp;: openamrobot_docking.launch.py
+      <div class="node bad">└ parameter_bridge <code>/camera_info</code> <span class="tag dup">2nd bridge</span></div>
+      <div class="node sim">└ camera_info_sync · apriltag_sim · detected_dock_pose</div>
+      <div class="node real">└ dock_trigger <span class="ann"># owns /goal_pose</span> <span class="tag dup">FORWARDER #2</span></div>
+    </div>
+  </div>
+  <div class="meta">⇒ Brings up Gazebo + Nav2 <b>as a conceptual duplicate</b> of A(sim), but via <code>sim_bringup_launch</code> and with docking. Not modified by the integration.</div>
+</div>
+
+<h3>C · 3 manual terminals (sim)</h3>
+<div class="card tree">
+  <div class="node sim">T1 └ gz_simulator.launch.py</div>
+  <div class="node sim">T2 └ sim_bringup_launch.py <span class="ann"># = same 2 includes as B, step 2</span></div>
+  <div class="node sim">T3 └ openamrobot_docking.launch.py <span class="ann"># = same layer as B, step 3</span></div>
+  <div class="meta">⇒ Exactly the contents of B "unfolded" by hand. B = C + TimerActions. Not a 4th implementation, just the same graph launched differently.</div>
+</div>
+
+<h3>D · Isolated building blocks (debug)</h3>
+<p class="sub">Each include above can be launched on its own: <code>real_bringup</code>, <code>drivers</code>, <code>camera</code>, <code>online_async_launch</code> (SLAM), etc. Healthy — these are reusable leaves, not duplicates.</p>
+
+<!-- ====================================================== -->
+<h2>4. Duplicates & overlaps — the precise list</h2>
+
+<table>
+<tr><th>#</th><th>Element</th><th class="c">Severity</th><th>Description</th><th>Recommendation</th></tr>
+
+<tr>
+  <td>1</td>
+  <td><b>Two SIM Nav2 stacks</b><br><span class="ann">A(sim) vs sim_bringup_launch</span></td>
+  <td class="c"><span class="sev md">medium</span></td>
+  <td><code>bringup.launch.py sim:=true</code> includes <code>localization</code>+<code>navigation</code> <u>directly</u>. <code>sim_bringup_launch.py</code> (used by B and C) includes <u>the same two</u>, but freezing <code>use_sim_time=true</code> and the "old-style" map passing. Two ways to bring up the same Nav2 in sim.</td>
+  <td>Make <code>sim_bringup_launch</code> either a simple alias of A(sim), or deprecate it. Eventually: A must be the single source.</td>
+</tr>
+
+<tr>
+  <td>2</td>
+  <td><b>Two map injections</b></td>
+  <td class="c"><span class="sev md">medium</span></td>
+  <td>A writes a temporary <code>nav2_params.yaml</code> with <code>map_server.yaml_filename</code> pre-filled (fixes the empty map_server bug). <code>sim_bringup_launch</code> passes <code>map:=my_map.yaml</code> directly (RewrittenYaml path). Two mechanisms → only one is "the fix".</td>
+  <td>Unify on A's temp-params method (deterministic), or verify that the direct method suffices in sim and document why there are two.</td>
+</tr>
+
+<tr>
+  <td>3</td>
+  <td><b>Two <code>/goal_pose→/goal_pose_nav</code> forwarders</b><br><span class="ann">relay vs dock_trigger</span></td>
+  <td class="c"><span class="sev hi">high*</span></td>
+  <td>The relay (A sim, and A real if <code>use_docking=false</code>) AND <code>dock_trigger</code> (docking) both publish on <code>/goal_pose_nav</code>. *Not a bug as long as only one is launched. But if you launch <b>A sim:=true (relay)</b> + the sim docking layer → <b>double publication</b> of the goal.</td>
+  <td>Exclusivity by construction: when docking runs, remove the relay. This is already the case on real (use_docking); to be reproduced in sim.</td>
+</tr>
+
+<tr>
+  <td>4</td>
+  <td>parameter_bridge ×2<br><span class="ann">gz_simulator + openamrobot_docking</span></td>
+  <td class="c"><span class="sev lo">false duplicate</span></td>
+  <td>The main bridge is in <code>gz_simulator</code>. <code>openamrobot_docking</code> launches a 2nd one dedicated to <code>/camera_info</code> (root) because the main bridge only publishes <code>/camera/camera_info</code>, not where image_transport looks. Justified by a comment in the code.</td>
+  <td>OK as is. Ideally move the camera_info bridge into gz_simulator to centralize everything.</td>
+</tr>
+
+<tr>
+  <td>5</td>
+  <td>apriltag sim vs real<br><span class="ann">apriltag_sim.launch.yml / apriltag.launch.yml</span></td>
+  <td class="c"><span class="sev lo">healthy</span></td>
+  <td>Two files because the camera topics differ (<code>/rgb_image</code> sim vs <code>/camera/image_raw</code> real). A genuine sim/real split, not a duplicate.</td>
+  <td>Nothing to do. Good separation.</td>
+</tr>
+
+<tr>
+  <td>6</td>
+  <td><code>use_scan_filter</code> not passed by sim_bringup</td>
+  <td class="c"><span class="sev lo">minor</span></td>
+  <td>A(sim) forces <code>use_scan_filter=true</code>. <code>sim_bringup_launch</code> does not pass the argument → it depends on the <code>navigation_launch</code> default. Potentially different filtering behavior between B and A in sim.</td>
+  <td>Align: explicitly pass the same value in sim_bringup.</td>
+</tr>
+</table>
+
+<!-- ====================================================== -->
+<h2>5. Sim / real coexistence — summary diagram</h2>
+
+<div class="card">
+<table>
+<tr><th>Layer</th><th>SIM</th><th>REAL</th><th class="c">Symmetric?</th></tr>
+<tr><td>Data source</td><td class="c"><span class="pill sim">gz_simulator</span></td><td class="c"><span class="pill real">real_bringup</span></td><td class="c">✅</td></tr>
+<tr><td>Nav2 (localization+navigation)</td><td colspan="2" class="c"><span class="pill shared">SAME code + SAME nav2_params.yaml</span> (only <code>use_sim_time</code> / source differ)</td><td class="c">✅</td></tr>
+<tr><td>Launched by the selector?</td><td class="c">yes (A sim)</td><td class="c">yes (A real)</td><td class="c">✅</td></tr>
+<tr><td><b>Docking in the selector?</b></td><td class="c"><span class="pill bad">NO — relay only</span></td><td class="c"><span class="pill real">YES — use_docking</span></td><td class="c">❌</td></tr>
+<tr><td>Docking elsewhere</td><td class="c"><span class="pill sim">bringup_sim.launch.py<br>(parallel world)</span></td><td class="c"><span class="pill real">integrated into A</span></td><td class="c">❌</td></tr>
+</table>
+<p class="meta">The Nav2 core coexists perfectly (a single code, a single params file). The <b>only real fracture</b> is docking: integrated into the selector on real, but isolated in a separate launcher on sim.</p>
+</div>
+
+<!-- ====================================================== -->
+<h2>6. What should be done (if we want a symmetric "1 command")</h2>
+
+<div class="card">
+<ol>
+  <li><b>Plug the sim docking into the selector</b>: add <code>use_docking</code> to the <code>sim:=true</code> branch of <code>bringup.launch.py</code> (include <code>openamrobot_docking.launch.py</code> instead of the relay, like on real with <code>docking_real</code>). → removes duplicate #3 in sim and the asymmetry.</li>
+  <li><b>Reduce <code>bringup_sim.launch.py</code></b> to a thin alias that calls <code>bringup.launch.py sim:=true use_docking:=true</code> (keeps the historical command for compatibility, but a single implementation behind it). → removes duplicate #1.</li>
+  <li><b>Unify the map injection</b> (#2): <code>sim_bringup</code> and A must use the same mechanism.</li>
+  <li><b>Align <code>use_scan_filter</code></b> (#6).</li>
+</ol>
+<p class="meta">⚠️ The user explicitly said they do not want to deviate too much from the old version. So: <b>keep B and C functional</b> (don't break anything), and add symmetry only additively (new argument, alias) — no removal.</p>
+</div>
+
+<h3>For the record — the commands that work today (nothing to change to launch)</h3>
+<div class="kbd">source /opt/ros/jazzy/setup.bash
+source ~/Documents/openAMRobot/openamr-platform-sw/ros2/install/setup.bash
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp ; export ROS_DOMAIN_ID=0
+
+# SIM, nav only (integration):
+ros2 launch openamrobot_bringup bringup.launch.py sim:=true use_rviz:=true
+
+# SIM, everything + docking (historical, 1 command):
+ros2 launch openamrobot_docking bringup_sim.launch.py
+
+# REAL, everything + docking (integration):
+ros2 launch openamrobot_bringup bringup.launch.py sim:=false use_rviz:=true</div>
+<p class="meta">⚠️ Launch only <b>ONE at a time</b>. Launching A(sim) and B together = two Gazebo / two <code>/clock</code> / two forwarders → this is precisely what broke the previous tests.</p>
+
+</div>
+</body>
+</html>
