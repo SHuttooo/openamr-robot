@@ -174,6 +174,12 @@ Status legend: ✅ done/validated · 🟡 partial/in progress · 🔵 documented
 | **PID re-tuning** | Step-response method → K_P/K_I/K_D | ✅ |
 | **Wheelbase correction** | `LR_WHEELS_DISTANCE` 0.45 → **0.46** (Teensy re-flash) | ✅ |
 | **Motor chain validation on mains** | Closed-loop forward motion, L/R wheels equalized, left wheel holds | ✅ |
+| **Encoder ripple correction** | Decentered-magnet ±40% 2/rev error characterized + corrected by a **runtime lookup table** (re-aligned ~8 s/boot) | ✅ |
+| **Velocity feedforward** | `PWM = Kff·target + PID` → **speed-independent response** (Kff=7.87 PWM/rpm, measured open-loop) | ✅ |
+| **Back-calculation anti-windup** | Bleeds the integral on saturation → no high-speed overshoot | ✅ |
+| **Low-speed velocity estimator** | Fixed-displacement (12 counts) → clean rpm where the fixed-time method gives ±70% noise | ✅ |
+| **Anti-stiction dither** | ±92 PWM @ 25 Hz below 13 rpm → smooth motion down to ~0.06 m/s (docking) | ✅ |
+| **Tuning GUI** | `pid_tuner.py`: live step-response plots + sliders Kp/Ki/Kd/R-gain/Kff/Dither via `/debug/tune` | ✅ |
 
 ### 4.3 Perception & mapping
 | Task | Detail | Status |
@@ -211,6 +217,7 @@ This section illustrates the **diagnostic approach** — often more instructive 
 | Observed symptom | Root cause found | Solution |
 |---|---|---|
 | "Drunk" wheel, weaving | **Off-center magnet** of the **right encoder** | Mechanical recentering of the AS5040 |
+| **Left wheel oscillation no gain could fix** | **Decentered magnet, left encoder** → ±40 % 2/rev *measurement* ripple (not real motion) | **Runtime correction table** + full velocity-loop rebuild — see **§5.1** |
 | ~4–5 V at encoder output | AS5040 powered at 5 V → 5 V outputs on the **5 V-intolerant Teensy 4.0** | Encoder supply at **3.3 V** |
 | Robot "weak", crashes into things | **24 V voltage too low** (battery at 23.4 V, sag under load) | Recharge ≥ 25 V / test **on mains** |
 | Robot does not hold its heading | Left wheel **dropping out** (intermittent cable contact) under load + low 24 V | Localized on the power side; to be re-soldered |
@@ -225,11 +232,87 @@ This section illustrates the **diagnostic approach** — often more instructive 
 > An obstacle **lower than ~18 cm** is **invisible** → neither inflation nor footprint avoids it.
 > A hardware solution is required (low sensor / depth camera / bumper).
 
+### 5.1 In-depth case study — diagnosing and rebuilding the motor velocity loop
+
+This case study is representative of the whole internship: a symptom that *looked* like a control
+problem turned out to be a **sensor defect**, and fixing it properly meant rebuilding the entire
+low-level velocity loop. It is documented in full in `docs/history/encoder-calibration.md`.
+
+**Symptom.** During PID tuning, the **left wheel kept a slow ±6 rpm oscillation that no gain could
+remove** (lowering K_I calmed it but made the loop sluggish; raising it brought it back). The right
+wheel tuned cleanly. A symptom that does not respond to *any* gain is a strong hint that it is **not** a
+control problem.
+
+**Diagnosis — measure, don't guess.** I wrote `encoder_calib.py`: at a constant open-loop PWM the wheel
+turns at a constant *true* speed, so binning the *instantaneous* measured rpm by **wheel angle**
+(`counts mod 1024`) reveals any angle-locked error. Result: the **left encoder reports a 2-cycle/rev
+velocity error of ±40 % peak-to-peak, identical at every speed** → position-locked, speed-independent =
+a **decentered magnet** on the AS5040. The PID had been faithfully chasing a 40 % *measurement*
+artifact. The right wheel showed only ±6 %.
+
+**A sequence of attempts — each one instructive.** The fix is the interesting part:
+1. *Compiled correction table* (`true = measured / CAL[angle]`): it **could not hold**. The encoder is
+   **incremental** — its count resets to 0 at a random wheel angle on every boot — so a table compiled
+   into the firmware is mis-phased by the very re-flash that installs it (verified: it even *doubled*
+   the ripple when applied anti-phase).
+2. *Time-domain low-pass*: useless — the ripple frequency scales with speed and sits inside the control
+   band (it passes *more* at low speed).
+3. *Angle-domain estimator* (velocity over half a revolution): flattened the ripple at any speed, but
+   added ~0.6 s of lag → unacceptable for the controller.
+4. **Final solution — runtime table + fast per-boot phase alignment.** The ripple *shape* is a fixed
+   physical property; only its *phase* shifts each boot. So the shape is characterized **once**
+   (`encoder_ref_table.json`) and, after each power-on, a ~8 s routine (`align_enc_cal.py`) spins the
+   wheel, cross-correlates the measured ripple against the reference to find the per-wheel phase offset
+   (sub-degree), and uploads the correctly-phased table to the firmware over a ROS topic — **instant
+   correction, no lag, and it survives reboots.** Residual ripple: ±40 % → **±4 %**.
+
+**Rebuilding the loop on a clean signal.** With trustworthy velocity feedback, tuning exposed that a
+**pure PID cannot give a consistent response across speeds**: the integral has to "discover" the
+holding PWM, which differs with speed, producing an overshoot that *grows with speed* (12 % at 0.15 m/s,
+47 % at 0.31). The structural fix is **velocity feedforward**: `PWM = K_ff · target_rpm + PID`, where
+`K_ff` (≈ 7.9 PWM/rpm) is measured open-loop. The feedforward supplies the bulk of the command, the PID
+only trims the residual → **the same response shape at every speed**, and the gains drop to a calm
+`K_P = 2.0 / K_I = 0.10 / K_D = 0.10`. Three more refinements complete the chain:
+- **Back-calculation anti-windup** (bleeds the integral out on saturation) removes the residual
+  high-speed overshoot.
+- A **fixed-displacement velocity estimator** (timing a small 12-count window) removes the ±70 %
+  quantization noise the fixed-time method produces below ~5 rpm.
+- An **anti-stiction dither** (±92 PWM flipped at 25 Hz, active only below 13 rpm) breaks the low-speed
+  **stick-slip** limit cycle (the wheel sticking and releasing against static friction), giving smooth
+  motion **down to ~0.06 m/s** — useful for docking. Below that is a hard mechanical floor (motor
+  deadband ≈ 120 PWM, static > kinetic friction).
+
+**Resulting control chain** (Teensy, 50 Hz, per wheel):
+
+```
+  cmd_vel ─► kinematics ─► [ FEEDFORWARD + PID(+anti-windup) ] ─► DITHER ─► PWM ─► MOTOR
+   (m/s)     target_rpm                  ▲                      (<13rpm)            │
+                                         │ measured rpm                            │
+                ripple table ◄── velocity estimator ◄────── encoder counts ◄───────┘
+                /CAL[angle]     Δcounts/Δt (12 counts)
+```
+
+| Stage | Problem it solves | Key value |
+|---|---|---|
+| Velocity estimator (12-count window) | low-speed quantization noise (±70 %) | clean rpm at any speed |
+| Runtime ripple table | decentered magnet ±40 % 2/rev | ±40 % → ±4 % |
+| Feedforward `K_ff·target` | speed-dependent overshoot | same response everywhere |
+| PID + back-calc anti-windup | residual error + saturation overshoot | K_P 2.0 / K_I 0.10 / K_D 0.10 |
+| Anti-stiction dither | low-speed stick-slip | smooth to ~0.06 m/s |
+
+**Skills demonstrated:** instrumentation and data-driven diagnosis (separating a sensor artifact from a
+control problem), digital control (PID, feedforward, anti-windup), DSP (angle- vs time-domain filtering,
+cross-correlation phase alignment), embedded firmware (Teensy/micro-ROS, runtime parameterization), and
+knowing the **physical limits** (stick-slip, motor deadband) beyond which software cannot help.
+
 ---
 
 ## 6. Results / current state
 
 - ✅ Low-level control chain **reliable** (on mains): PID, odometry, encoders, IMU.
+- ✅ **Velocity loop fully rebuilt and tuned** (feedforward + PID + anti-windup + runtime encoder-ripple
+  correction + anti-stiction dither): consistent response across the whole speed range, smooth from
+  ~0.06 m/s (docking) to the nav max — see **§5.1**.
 - ✅ **SLAM** operational, map saved.
 - ✅ **AMCL localization + Nav2 navigation** working; the robot **plans and moves**.
 - ✅ **Obstacle avoidance** working: the costmap sees obstacles, the controller tests the full
