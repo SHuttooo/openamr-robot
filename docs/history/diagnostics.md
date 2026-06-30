@@ -437,3 +437,80 @@ driving/mapping**, not just before PID tuning — the table is RAM and dies on e
 3. Restart slam_toolbox fresh, map **very slowly** (`speed:=0.06`, gentle arcs, no sharp spins; the 7 Hz
    lidar needs it), close loops, save (`map_saver_cli` + `serialize_map`).
 4. Then continue the 10-day plan: **Day 2 = real Nav2 validation** (localization, costmaps, send a goal).
+
+## 14. Day 2 (2026-06-30) — Nav tuning + the real cause of the start-up delay
+
+### 14a. Nav2 tuning pass (live + persisted)
+Reviewed the whole `nav2_params.yaml` against classic Nav2 practice. The config was already solid
+(velocity-smoother aligned to DWB limits, real octagonal footprint, tuned DWB critics, AMCL kidnap
+recovery). Applied two improvements, **live** (`ros2 param set` + costmap clear) **and** persisted in the
+yaml on the Pi (`src` → `build` → `install` are symlinked, so editing `src` survives relaunch):
+- **`global_costmap` `cost_scaling_factor` 2.5 → 3.5** — the high-cost halo around walls decays faster →
+  the robot is less often "in quasi-collision" at the start of a goal → fewer recoveries.
+- **AMCL `laser_max_range` 100 → 12** — the RPLIDAR A1 only sees ~12 m; 100 just added phantom beams.
+- (earlier the same day) **DWB `min_vel_x` 0.0 → -0.05** — a small reverse only when stuck.
+
+The real bottleneck remains the **~7 Hz lidar** (classic robots run 10–15 Hz) — a hardware upgrade, not a
+tuning knob.
+
+### 14b. The start-up "thinking" delay was CPU starvation, not inflation
+The user reported goals still took seconds to start. It was **not** the inflation/planner — it was
+**CPU**. `top` showed the Pi at **load 8.3 on 4 cores**: `apriltag_node` at **166 %** + `camera` at
+**58 %** ate ~2.2 cores, starving the planner/controller. Killing apriltag dropped the load **8.3 → ~4**
+and the delay vanished. (apriltag is only needed for docking, never for nav.)
+
+### 14c. On-demand AprilTag gate (so apriltag costs 0 % during nav)
+Rather than a manual `pkill` every session, implemented a proper **on-demand gate**: apriltag runs **only
+when docking asks for it**, toggled instantly (no process start, no camera warm-up). `dock_trigger`
+enables it at the staging zone and disables it when the sequence ends. **Verified end-to-end on the real
+robot**: apriltag CPU **1 % (off) → 102 % (on) → 1 % (off)**.
+
+Key gotcha found while building it: a **best-effort** image subscriber gets **starved** by the RELIABLE
+depth-1 camera once apriltag also runs (frames stop) → the gate uses **RELIABLE** QoS on both ends.
+
+Full design, files, verification and the **before/after command diff**:
+**`docs/software/docking-apriltag-gate.md`**. See [[amr-apriltag-on-demand-gate]] and [[amr-nav2-bringup]].
+
+**Operator diff (before → after):** the bring-up command is unchanged
+(`bringup … use_docking:=true`); the old workaround `pkill -f "[a]priltag_node"` to free CPU for nav is
+**gone** — apriltag is idle automatically and `dock_trigger` turns it on only for the dock approach.
+Manual toggle if needed: `ros2 service call /apriltag/set_enabled std_srvs/srv/SetBool "{data: true}"`.
+
+### 14d. Clean Git history → 5 PR-ready branches
+The working tree on `local/test-all` had ~17 uncommitted files spanning several subsystems. Sorted them
+into **clean, per-subsystem commits on the right feature branches** (via isolated `git worktree`s so the
+dirty integration branch was never disturbed), pushed to the **SHuttooo fork** (fast-forward, no force,
+DCO sign-off, no Claude attribution):
+- `feature/docking-apriltag-gate` (new) — the on-demand gate.
+- `feature/nav2-real-tuning` — tested `nav2_params.yaml` + velocity_smoother/collision_monitor in
+  `navigation_launch.py`.
+- `feature/perception-scan-body-filter` — parametrised camera launch + scan filter.
+- `feature/real-bringup` — unified sim/real bring-up + goal_relay.
+- `feature/diagnostics` — unchanged.
+= **5 PR candidates** toward `openAMRobot:main`. Caveat: `real-bringup` shares the perception commit →
+overlap to clear (merge perception first, rebase real-bringup over it). `local/test-all` stays the local
+**integration/test** branch (not a PR). Full state: [[amr-platform-sw-prs]].
+
+## 15. Day 2 (cont.) — Operator UI integration started
+
+The operator UI lives in a **separate repo** `openamrobot-ui` (React + Blockly + roslibjs, served by
+Flask, talks to ROS via `rosbridge`; backend = QoS relay nodes + `web_video_server`). It is **already
+production-ready and its topic/service interface matches the real robot exactly** (goal, dock, undock,
+dock status, cmd_vel, scan, camera, map, amcl, nav status, cancel — all verified). So integration is
+*alignment*, not wiring.
+
+**Findings & first commits** (branch `feat/real-robot-integration` on the SHuttooo fork):
+- **The one integration gotcha:** `docker-compose.yml` defaults RMW to **FastDDS** while the robot runs
+  **CycloneDDS on domain 0** → the UI connects to rosbridge but every panel stays empty. Fixed with a
+  ready `.env.example` (CycloneDDS + domain 0).
+- Camera default topic `/rgb_image` (sim) → `/camera/image_raw` (real); rosbridge IP made
+  env-configurable (`REACT_APP_ROSBRIDGE_IP`).
+- New runbook **`docs/REAL-ROBOT-INTEGRATION.md`** in the UI repo (launch order, the DDS gotcha, the
+  verified topic-match table, the deployment-specific values still to set: standby pose, named locations).
+- The legacy `move_base_launch.py`/`map_server_launch.py` are NOT in the real `ui.launch.py` → no risk of
+  a second Nav2/map_server.
+
+**Build environment reality:** no node/npm and no Docker on the PC or Pi → edit-and-push workflow, build
+via Docker on the operator side. The PC's Linux partition (84.5 GB, dual-boot) filled up during the first
+Docker build; freed ~15 GB of regenerable caches, and prepared an **ext4-loopback-on-the-exFAT-SSD** plan
+for Docker (the 931 GB Crucial X9 is exFAT, which overlay2 cannot use directly). See [[amr-ui-operator]].
