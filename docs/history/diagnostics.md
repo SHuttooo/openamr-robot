@@ -514,3 +514,33 @@ dock status, cmd_vel, scan, camera, map, amcl, nav status, cancel — all verifi
 via Docker on the operator side. The PC's Linux partition (84.5 GB, dual-boot) filled up during the first
 Docker build; freed ~15 GB of regenerable caches, and prepared an **ext4-loopback-on-the-exFAT-SSD** plan
 for Docker (the 931 GB Crucial X9 is exFAT, which overlay2 cannot use directly). See [[amr-ui-operator]].
+
+## 16. Day 2 (evening) — UI live against the real robot, nav made reliable
+
+Brought the UI up end-to-end on the real robot and fixed every blocker found, in order:
+
+1. **Entrypoint crash-loop**: `container_entrypoint.sh` ran `set -u` then sourced ROS `setup.bash`
+   (references unset `AMENT_TRACE_SETUP_FILES`) → container exited 1 and restart-looped, nothing on :5050.
+   Fix: `set +u` around the two `source` lines.
+2. **UI blind to the robot** (connected to rosbridge, all panels empty): the container ran **FastDDS /
+   domain 42** while the robot is **CycloneDDS / domain 0**. Two causes — (a) the **shell exports
+   `ROS_DOMAIN_ID=42`** which Docker Compose gives precedence over `.env`; (b) **CycloneDDS wasn't in the
+   image** (ros-base default = FastDDS). Fix: add `rmw-cyclonedds-cpp` to the Dockerfile + launch with
+   `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp ROS_DOMAIN_ID=0 docker compose up`. → UI then shows pose, map,
+   laser, camera.
+3. **Navigation dead** (UI lifecycle: planner/bt inactive): the **lifecycle_manager_navigation stalls
+   during autostart** on the loaded Pi (default `bond_timeout` 4 s too short) — it activates
+   controller_server then fails to bring up planner_server (global_costmap). Manual activation works
+   instantly. Fix: `bond_timeout: 60.0` on the manager (both composed/non-composed) → autostart completes
+   the whole chain on its own next bring-up.
+4. **Map page bottom unreachable**: `h-[calc(100vh-72px)]` + `xl:overflow-hidden` clipped the waypoint
+   queue/controls with no scroll. Fix: drop `xl:overflow-hidden`, let the controls row grow.
+
+Also documented: the UI **waypoint/route** feature is wired in the frontend (place/queue waypoints) but its
+backend nodes `folders_handler` (route files) and `waypoint_nav` (route execution via
+nav2_simple_commander) are **not in `new_ui_launch.py`** → saving/running routes is inert until they are
+added. UI path = the same `/plan` topic as RViz (two views, not linked).
+
+**End-of-day state:** real nav works, UI works, docking gate done; everything committed and pushed —
+**5 platform-sw branches + 1 UI branch on the SHuttooo fork** (PRs not yet opened). Resume plan for Day 3:
+[[amr-next-session-plan]] (verify bond_timeout on bring-up, open the 6 PRs, set the real UI coordinates).
