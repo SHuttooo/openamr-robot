@@ -45,9 +45,11 @@ l'agent, et logge dans un fichier ; lancé **détaché** ; puis on lit le log da
 - `pkill` : toujours le **bracket trick** `pkill -f "[m]icro_ros_agent"` (sinon self-match, exit 255).
 
 ## Topics de debug (interface réelle, vérifiée)
-- **`/debug/openloop`** (`geometry_msgs/Vector3`, RELIABLE, le firmware écoute) : **x = PWM gauche,
-  y = PWM droite** (−1023..1023), PID court-circuité. Publier en continu pour battre le watchdog 200 ms :
-  `ros2 topic pub -r 10 /debug/openloop geometry_msgs/msg/Vector3 "{x: 200.0, y: 200.0, z: 0.0}"`.
+- **`/debug/openloop`** (`geometry_msgs/Vector3`, RELIABLE, le firmware écoute) : **x = PWM appliqué aux
+  DEUX moteurs** (`pwm1=pwm2=x`, droite ×`motor2_gain`) ; **y et z IGNORÉS** (vérifié source firmware.ino:610).
+  −1023..1023, PID court-circuité. Ne pilote les moteurs QUE dans le build powered-debug (sinon ignoré).
+  Péremption **300 ms** (≠ watchdog /cmd_vel 200 ms). `ros2 topic pub -r 10 /debug/openloop
+  geometry_msgs/msg/Vector3 "{x: 200.0}"` (l'ancienne note « x=gauche, y=droite » était FAUSSE).
 - **`/debug/left`** et **`/debug/right`** (`Vector3`, **BEST_EFFORT** → echo avec
   `--qos-reliability best_effort`) : **x = rpm cible, y = rpm mesuré, z = counts encodeur cumulés**.
 - Aussi : `/debug/pwm`, `/cmd_vel`, `/imu/data`, `/odom/unfiltered`.

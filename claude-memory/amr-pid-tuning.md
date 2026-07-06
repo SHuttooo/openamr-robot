@@ -66,7 +66,7 @@ DROITE ±3,5 %, plat, instant, survit au reboot (re-align). **À relancer après
 (pas par lancement ROS — la table vit dans la RAM Teensy). **Commande (lancée DEPUIS LE PC, dans
 `~/Documents/openamr`, PAS sur le Pi ; ROUES EN L'AIR ; bringup lancé pour l'agent micro-ROS ; 24V) :**
 `cd ~/Documents/openamr && source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp ROS_DOMAIN_ID=0 && python3 scripts/align_enc_cal.py --arm 250` (rapide ~6-8 s) ;
-full = `scripts/calibrate_and_apply.sh`. Le script parle au firmware via `/debug/enc_cal` (Cyclone/domain0). **`MOTOR2_GAIN` 1.10→1.05 reste valide** (scalaire). Données pour
+full = `scripts/calibrate_and_apply.sh`. Le script parle au firmware via `/debug/enc_cal` (Cyclone/domain0). **`MOTOR2_GAIN` = 1.000** (config figée 2026-06-29, cf. ligne 17 — le FF+intégrale gèrent l'asymétrie ; l'ancien 1.05/1.10 était pré-feedforward, PÉRIMÉ — vérifié dans `lino_base_config.h`). Données pour
 diagrammes : `docs/data/encoder_calib_*.json`. Récit complet : `docs/history/encoder-calibration.md`.
 
 Le firmware a le RPM précis (méthode période) et le live-tune `/debug/tune` qui marche (voir

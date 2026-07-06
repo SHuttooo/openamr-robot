@@ -1,12 +1,12 @@
 # Mémoire projet — Robot AMR (OpenAMR / linorobot2)
 
 - [Doc architecture (référence)](amr-architecture-doc.md) — docs/ARCHITECTURE.md = structure complète + audit ; décision: migrer lancement réel vers platform-sw bringup.launch.py
-- [Réglage PID + encodeurs](amr-pid-tuning.md) — gains ≈ Kp0.8/Ki0.2/Kd0.5 ; « oscillation » gauche = encodeur décentré (ripple 2/tour ~40 %) ; table de correction NE MARCHE PAS (encodeur incrémental → phase perdue à chaque boot) → vrai fix = filtre vitesse ; MOTOR2_GAIN 1.05
+- [Réglage PID + encodeurs](amr-pid-tuning.md) — **config figée (source `lino_base_config.h`) = K_P 2.0/K_I 0.1/K_D 0.1 + feedforward, MOTOR2_GAIN 1.000** (le Kp0.8/Ki0.2/Kd0.5 & 1.05 = histoire PRÉ-feedforward, PÉRIMÉ) ; « oscillation » gauche = encodeur décentré (ripple 2/tour ~40 %) ; **fix DÉPLOYÉ = table de correction chargée à chaud + recalage de phase par boot (`align_enc_cal.py` ~8s → ±40%→±4%, à relancer chaque power-cycle Teensy)** ; une table STATIQUE/compilée ne marche pas (encodeur incrémental → phase perdue au boot) et le filtre vitesse 512-count a été REJETÉ (lag ~0.6s)
 
 - [Câblage couleurs DC](amr-wiring-dc-colors.md) — sur ce robot, marron = + (rouge), bleu = − (noir)
 - [Caméra IMX708 / libcamera](amr-camera-imx708-libcamera.md) — HW OK, libcamera upstream ne gère pas la Cam Module 3 → besoin du fork RPi (à compiler)
 - [Docking/Nav2 réel](amr-docking-nav2-real.md) — openamr-platform-sw buildé sur le Pi ; plan portage docking réel + gotchas (CycloneDDS, calib, dock physique, isolation domaine sim)
-- [Roue gauche faux-contact](amr-left-wheel-faux-contact.md) — BLOQUEUR n°1 : chaîne gauche intermittente (câble), à réparer (souder)
+- [Roue faux-contact — RÉSOLU](amr-left-wheel-faux-contact.md) — n'est PLUS un bloqueur persistant d'une roue précise (2026-07-06). Réalité actuelle : parfois un **câble se débranche** → le rebrancher ; parfois une **roue cale au démarrage** → un **relancement général** du stack règle. Ne PAS documenter comme « panne roue gauche/droite permanente » (l'oscillation encodeur GAUCHE = autre chose = aimant décentré, gérée par calibration)
 - [Réglage drivers (pots/DIP)](amr-driver-balance-dip.md) — équilibrage VAR droit (tangage), piste DIP SW1 boucle ouverte, quantif rpm
 - [Suite session Nav2/Cyclone](amr-session-suite-nav2-cyclone.md) — CycloneDDS, openamr-platform-sw buildé, docking, contrôle OK ; reste câble gauche
 - [Encodeurs 5V surtension](amr-encoder-5v-overvoltage.md) — défaut : sorties A/B ~4V sur Teensy 3.3V non tolérant → à protéger (résistance/diviseur/level-shifter)
