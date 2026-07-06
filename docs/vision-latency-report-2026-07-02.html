@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenAMRobot — AprilTag docking: vision latency & compute (2026-07-02)</title>
+<style>
+  :root{
+    --bg:#0f1420; --card:#171d2b; --card2:#1d2536; --ink:#e7ecf5; --muted:#9aa7bd;
+    --line:#2a3550; --accent:#5b9dff; --good:#3ddc97; --warn:#ffcc66; --bad:#ff6b6b;
+    --code:#0b0f18;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:40px 22px 90px}
+  header{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:30px}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+  h2{font-size:23px;margin:44px 0 14px;padding-top:10px;border-top:1px solid var(--line)}
+  h3{font-size:18px;margin:26px 0 8px;color:#cdd8ee}
+  .sub{color:var(--muted);font-size:15px}
+  p{margin:12px 0}
+  code{background:var(--code);border:1px solid var(--line);border-radius:5px;
+    padding:1px 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;color:#d6e2ff}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:9px;padding:14px 16px;
+    overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;color:#cfe0ff}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:16px 0}
+  .callout{border-left:4px solid var(--accent);background:var(--card2);border-radius:8px;padding:14px 18px;margin:18px 0}
+  .callout.key{border-left-color:var(--bad)}
+  .callout.win{border-left-color:var(--good)}
+  .callout b{color:#fff}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.03em}
+  tr:hover td{background:#1a2233}
+  .tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .t-bad{background:rgba(255,107,107,.15);color:var(--bad)}
+  .t-good{background:rgba(61,220,151,.15);color:var(--good)}
+  .t-warn{background:rgba(255,204,102,.16);color:var(--warn)}
+  ul,ol{margin:12px 0;padding-left:22px}
+  li{margin:6px 0}
+  .muted{color:var(--muted)}
+  .big{font-size:19px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .num{font-variant-numeric:tabular-nums}
+  footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:13.5px}
+  .pill{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:13px;margin:2px 4px 2px 0;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>AprilTag docking on OpenAMRobot — the real blocker is vision latency, not the control</h1>
+  <p class="sub">Engineering note for <b>Alex</b> &amp; <b>Raj</b> · 2026-07-02 · Platform: Raspberry Pi 5 (4 cores), Sony IMX708 @ 1280×720, RPLIDAR A1, Teensy (micro-ROS), ROS 2 Jazzy, Nav2, AprilTag 36h11 bundle as the dock target.</p>
+</header>
+
+<div class="callout key">
+  <p class="big" style="margin-top:0"><b>TL;DR.</b> The docking sequencer and the drivetrain are fine. We spent the day chasing <i>control</i> symptoms (the visual servo oscillates, drifts into the wrong tag, loses lock). The real cause is <b>upstream</b>: the AprilTag detector hands the servo tag positions that are <b>250–400&nbsp;ms stale</b> (were 700&nbsp;ms and growing). A servo fed stale data <b>chases</b> its target and becomes unstable. The staleness is <b>CPU saturation</b>: the Pi 5 sits at <b>load ≈ 8 on 4 cores</b> when it runs Nav2 + the camera + full-resolution AprilTag at the same time. <b>Fix the CPU budget before touching the control gains again.</b></p>
+</div>
+
+<h2>1. What we did today</h2>
+<ul>
+  <li><b>Characterised the drivetrain.</b> Open-loop + closed-loop velocity sweeps on the ground. Result: the motor is <b>healthy and well-sized</b>; the low-speed judder is stick-slip below measured floors, not a fault.</li>
+  <li><b>Rebuilt the Phase-5 visual corrector</b> — camera-frame PD on the centre-tag bearing, made dominant over the noisy map-frame line, with a hysteresis deadband, coast-through-dropout, and odometry dead-reckoning of the final blind centimetres.</li>
+  <li><b>Investigated the LiDAR</b> (IR-dot-on-tags hypothesis) — dead end (see §2).</li>
+  <li><b>Built diagnostics</b> and <b>found the root cause</b>: detection latency from CPU saturation (§3).</li>
+  <li><b>Deployed the first fixes</b>: AprilTag <code>decimate 2.0</code>, and a frame-rate throttle in the image gate (§5).</li>
+</ul>
+
+<h2>2. The problems we hit — with root cause</h2>
+
+<h3>2.1 &nbsp;<span class="tag t-good">resolved</span>&nbsp; Motor "struggles at low speed"</h3>
+<p>Suspected a bad wheel or an under-sized motor. Measured instead:</p>
+<ul>
+  <li>Left wheel healthy (10.4 vs 10.9 rpm, no dropouts).</li>
+  <li><b>Linear floor</b> 0.04 m/s reliable / 0.05 clean; <b>angular floor</b> 0.15 rad/s. Below → stick-slip stall.</li>
+  <li>Motor Z4BLD60-24GN-30S: 60 W, 30:1 gearbox, ~100 rpm wheel (~0.49 m/s max), ~4.18 N·m/wheel — <b>over-sized on torque</b>.</li>
+</ul>
+<p>The floors are <b>stick-slip + coarse Hall commutation at low RPM</b> (running a geared BLDC at ~10–30 % of max speed), not a torque shortfall. Docking speeds were re-based above the floors.</p>
+
+<h3>2.2 &nbsp;<span class="tag t-warn">downstream of §3</span>&nbsp; Visual servo instability</h3>
+<p>Drove into the outer tag (id 0) instead of the centre (id 1); left-right oscillation; "aligns but advances poorly". We rebuilt the corrector (PD + hysteresis + coast + odom dead-reckoning) — better, but the instability persisted, because <b>good control on 300&nbsp;ms-old data still chases</b>. This pointed us upstream.</p>
+
+<h3>2.3 &nbsp;<span class="tag t-bad">dead end</span>&nbsp; The LiDAR IR-dot idea</h3>
+<p>We wired the sequence to stop the LiDAR at the far→near hand-over (the near phase is camera-only). Result: <b>stopping the LiDAR motor killed the AprilTag detection within ~1 s</b>, reproducibly — most likely the rplidar node and apriltag share a process container. Reverted (behind a default-off parameter). <b>Caveat: because the cut broke detection for an unrelated reason, we never actually got to test the IR-dot hypothesis</b> — whether the IR dot also degrades detection <b>remains open</b>. It may well be a compound problem; what we have <i>measured</i> and know to be dominant is the latency, so the IR dot, if it contributes, is secondary.</p>
+
+<h3>2.4 &nbsp;<span class="tag t-warn">open</span>&nbsp; Camera focus</h3>
+<p>Continuous autofocus <b>hunts while moving</b> → motion blur → dropped detections at close range. A deterministic focus (drive lens position from the known tag distance) is designed but not yet deployed.</p>
+
+<h3>2.5 &nbsp;<span class="tag t-bad">ROOT CAUSE</span>&nbsp; AprilTag detection latency</h3>
+<p>Measured with a zero-overhead probe that reads <i>only</i> the detections topic (no image → adds ~0 CPU, so its number is trustworthy):</p>
+<table>
+  <tr><th>Config</th><th>Detection rate</th><th>Detection latency</th><th>Effect</th></tr>
+  <tr><td><code>decimate 1.0</code> (full-res quad detect)</td><td class="num">~8 Hz</td><td class="num" style="color:var(--bad)"><b>700 ms, growing</b></td><td>crosses the 1.5 s staleness limit → false "tag&nbsp;1 lost"</td></tr>
+  <tr><td><code>decimate 2.0</code> (½-res quad, full-res corner refine)</td><td class="num">~15 Hz</td><td class="num">~250 ms, stable</td><td>3× better; all 3 tags, good margin</td></tr>
+  <tr><td>real dock, honest probe</td><td class="num">2–19 Hz (thrashing)</td><td class="num" style="color:var(--bad)"><b>250–390 ms sustained</b></td><td>confirms it is real, not a measurement artifact</td></tr>
+</table>
+<p>The image <i>feeding</i> the detector is fresh (<code>/apriltag/image_in</code> age ≈ 60 ms), but the detector emits detections stamped 250–400 ms old → <b>its input queue is backed up</b>: it is fed faster than it can process because it is <b>starved of CPU</b>.</p>
+
+<h3>2.6 &nbsp;<span class="tag t-warn">recurring</span>&nbsp; Nav2 lifecycle stall at boot</h3>
+<p>The unified bring-up launches everything at once; the <b>navigation</b> group comes up inactive (planner / bt_navigator / behaviour / smoother) while <b>localization</b> (map_server, amcl) is active → goals do nothing. Recovery: 2D Pose Estimate first, then re-trigger the lifecycle manager. Proper fix (serialise nav activation after <code>map→odom</code>) pending.</p>
+
+<h2>3. The root cause, quantified: CPU saturation</h2>
+<div class="callout key">
+  <p style="margin:0"><b>Load average 8.0 on a 4-core Pi 5 — 2× oversubscribed.</b> Everything time-slices, and the AprilTag detector's input queue grows, so its detections go stale.</p>
+</div>
+<table>
+  <tr><th>Process</th><th>%CPU</th><th>Note</th></tr>
+  <tr><td><code>web_video_server</code></td><td class="num">54 %</td><td>diagnostic streamer — must be off during real runs</td></tr>
+  <tr><td><code>camera_node</code></td><td class="num">37 %</td><td>IMX708 @ 1280×720 (software ISP)</td></tr>
+  <tr><td><code>apriltag_gate.py</code></td><td class="num">35 %</td><td><b>Python re-publish of every full-res frame</b></td></tr>
+  <tr><td><code>apriltag_node</code></td><td class="num">20 %</td><td>the detector itself</td></tr>
+  <tr><td><code>dock_trigger.py</code></td><td class="num">18 %</td><td>the sequencer</td></tr>
+  <tr><td>Nav2 (controller/planner/bt/behaviour/collision/lifecycle/costmaps)</td><td class="num">~45 %</td><td><b>runs idle during the visual approach</b></td></tr>
+</table>
+<p>The vision <i>input</i> pipeline alone (camera + gate) is ~72 %. So "AprilTag is slow" is really "the Pi is 2× oversubscribed and the detector's queue backs up." Two of these are avoidable waste: the <b>Python gate</b> (35 % for a passthrough) and <b>Nav2 running while unused</b> during Phase 5 (it drives <code>/cmd_vel</code> directly then).</p>
+
+<div class="callout">
+  <p style="margin:0"><b>Why stale data breaks a servo (the control-theory bit).</b> Latency is pure phase lag in the feedback loop. Past a fraction of the loop's response time it drives oscillation: the controller reacts to where the target <i>was</i>, overshoots, sees the error flip, over-corrects the other way — a limit cycle. For a visual servo, <b>latency hurts far more than a bit of measurement noise</b> (which a filter smooths). That is why fixing latency matters more than re-tuning gains.</p>
+</div>
+
+<h2>4. Is the Raspberry Pi 5 underpowered for this?</h2>
+<p><b>Honest answer: borderline — and only because we run everything at full quality at once.</b></p>
+<ul>
+  <li>The Pi 5 (4× Cortex-A76) runs Nav2 comfortably, <i>or</i> a camera + AprilTag comfortably. It <b>cannot</b> do all of them concurrently at full resolution with headroom.</li>
+  <li>There is <b>no GPU/NPU acceleration for AprilTag on the Pi</b> — the quad detector (~1.5 cores at full res) runs on the CPU, competing with Nav2 and the camera. On accelerated platforms the same detection is &lt;10 ms and off the CPU entirely.</li>
+  <li>Real-time control is already on a separate MCU (the Teensy) — that part is right.</li>
+</ul>
+<p>So it is a <b>resource-budget / system-design</b> problem, not "the Pi is junk". With the software fixes below it can be made to work; for comfortable margins you offload vision or change the docking modality.</p>
+
+<h2>5. How others solve this</h2>
+<h3>Compute platform</h3>
+<ul>
+  <li><b>Serious / commercial AMRs:</b> an x86 mini-PC (Intel NUC) for Nav2 + perception, or an <b>NVIDIA Jetson (Orin)</b> when vision is heavy. Jetson's <code>isaac_ros_apriltag</code> runs AprilTag <b>on the GPU in &lt;10 ms</b>, leaving the CPU for Nav2. This is the single biggest difference from our setup.</li>
+  <li>Real-time control on a dedicated microcontroller (we do this).</li>
+</ul>
+<h3>Docking modality — most production AMRs do <u>not</u> use a camera + AprilTag</h3>
+<ul>
+  <li><b>2D-LiDAR + reflective markers</b> (the dominant industrial approach): the existing safety LiDAR sees high-intensity returns from retro-reflectors and triangulates the dock. <b>No camera, no GPU, robust to lighting</b>, and it reuses a sensor we already have (RPLIDAR). Nav2 ships <code>opennav_docking</code> oriented this way.</li>
+  <li><b>IR beacon homing</b> (Roomba-style powered dock), <b>depth-camera + on-device detection</b> (OAK cameras run the detector on-camera), or a <b>mechanical V-guide</b> so the vision only needs coarse accuracy.</li>
+  <li><b>Camera + AprilTag (our approach)</b> is common in research / for flexible targets, but it is the most compute-hungry and the most lighting/focus-sensitive option.</li>
+</ul>
+<h3>Vision-pipeline tricks everyone uses</h3>
+<p><span class="pill">decimate + full-res refine</span><span class="pill">ROI tracking after acquisition</span><span class="pill">cap the detector's frame rate</span><span class="pill">run vision only in the docking window</span><span class="pill">reduce/pause navigation while docking</span><span class="pill">hardware ISP / GPU debayer</span></p>
+
+<h2>6. Solutions — prioritized</h2>
+<div class="grid">
+  <div class="card">
+    <h3 style="margin-top:0">A · Now — software, free, keep the Pi</h3>
+    <ol>
+      <li><span class="tag t-good">done</span> <b>Throttle the AprilTag input to ~10 fps</b> (a <code>max_fps</code> param in the image gate). Kills the queue backlog → fresh detections, at <b>full resolution</b> (no tag-precision loss, unlike lowering the camera resolution).</li>
+      <li><b>Never run the visualisation tools during a real dock</b> (<code>web_video_server</code> alone was 54 % CPU).</li>
+      <li><b>Pause / deactivate Nav2 during Phase 5.</b> It drives <code>/cmd_vel</code> directly; the ~45 % nav stack is idle but running. Frees ~1.5 cores exactly when the detector needs them. <b>Highest-value change left.</b></li>
+      <li>Replace the Python gate with a C++/intra-process forwarder; deterministic camera focus; ROI tracking.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">B · Medium — offload the vision</h3>
+    <ul>
+      <li><b>NVIDIA Jetson Orin Nano</b> + <code>isaac_ros_apriltag</code> (GPU, &lt;10 ms, off the CPU) — keeps the camera + AprilTag design with real margins.</li>
+      <li><b>OAK-D / Luxonis camera</b> — runs the fiducial detector on-camera.</li>
+    </ul>
+    <h3>C · Best for production — change the modality</h3>
+    <ul>
+      <li><b>2D-LiDAR reflective markers</b> — reuses the RPLIDAR, no camera compute, no focus/lighting fragility, aligns with Nav2 <code>opennav_docking</code>. Most robust, lightest on compute.</li>
+      <li>Add a <b>mechanical V-guide</b> so vision only needs coarse accuracy.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="callout win">
+  <p style="margin:0"><b>Recommended path.</b> Ship <b>A1–A3</b> (throttle + kill viz + pause Nav2 during the approach) — this alone should bring the <i>effective</i> detection latency under ~120 ms on the current Pi and make the visual servo behave, with no new hardware. If docking must be bullet-proof for production, move to <b>2D-LiDAR reflectors</b>, or offload AprilTag to a <b>Jetson</b> if the camera/tag design must stay.</p>
+</div>
+
+<h2>7. One-line takeaway</h2>
+<p class="big">The docking maths and the motor are fine. The blocker is <b>feeding a real-time visual servo from a CPU-starved detector</b>. Fix the resource budget — throttle vision, and stop running Nav2 and the detector flat-out at the same time — <b>before</b> touching the control gains again; or move the fiducial detection off the CPU / onto the LiDAR.</p>
+
+<footer>
+  OpenAMRobot · vision-latency &amp; compute audit · 2026-07-02.
+  Companion: <code>docs/AUDIT-2026-07-02-vision-latency-and-compute.md</code>.
+  Diagnostic tools added today: <code>apriltag_latency.py</code> (zero-overhead), <code>apriltag_stats.py</code>, <code>apriltag_det_overlay.py</code>, <code>min_velocity_sweep.py</code>.
+</footer>
+
+</div>
+</body>
+</html>

@@ -35,3 +35,14 @@ local + cameracalibrator) : cf docs/hardware/camera.md.
 ⚠️ Image **tournée ~90°** (caméra montée de côté) + peut-être pas parallèle au sol → à corriger dans le
 **TF extrinsèque `camera_link`** (roll/pitch/yaw) avant le docking. Montage : x≈0.415, y=0, ~0.175 m du sol.
 Voir [[amr-pi-ros-commands]].
+
+**VOIR LA CAMÉRA SUR LE PC / WiFi (2026-06-25) — ne PAS passer par RViz/DDS.** Les images **ne traversent
+pas le WiFi en DDS** : brut = 65 Mo/s (impossible) ; compressé (~50 Ko) ne passe pas non plus (publisher
+`image_transport` **lazy** + QoS RELIABLE → l'appariement de l'abonné distant échoue ; en local sur le Pi
+tout marche : ~24 Hz brut / ~31 Hz compressé). De plus **RViz2 n'a pas de "Transport Hint"** → son display
+Image ne lit que le brut → inutilisable sur WiFi (le republish compressé→raw côté PC échoue car le compressé
+ne traverse pas). **SOLUTION qui marche = `web_video_server`** (`sudo apt install ros-jazzy-web-video-server`)
+lancé **sur le Pi** : lit la caméra en local (pas de DDS), sert du **MJPEG HTTP à la demande** (navigateur
+fermé = 0 trafic). PC → navigateur `http://172.17.201.29:8080/stream?topic=/camera/image_raw&type=mjpeg`
+(+`&quality=40` pour alléger). **Intégré dans `~/iboot.sh`** (lance web_video_server après la nav, et le tue
+au kill pour éviter les doublons). Runbook : docs/procedures/real-robot-runbook.md §8bis.

@@ -544,3 +544,104 @@ added. UI path = the same `/plan` topic as RViz (two views, not linked).
 **End-of-day state:** real nav works, UI works, docking gate done; everything committed and pushed —
 **5 platform-sw branches + 1 UI branch on the SHuttooo fork** (PRs not yet opened). Resume plan for Day 3:
 [[amr-next-session-plan]] (verify bond_timeout on bring-up, open the 6 PRs, set the real UI coordinates).
+
+## 17. Day 3 — Real-robot AprilTag docking bring-up (2026-07-01)
+
+Goal: get the **AprilTag-guided docking** working on the real robot — no physical dock,
+the printed **3-tag 36h11 bundle IS the target**. Long session. The 7-phase sequencer
+runs end-to-end and the robot docks, but alignment/robustness tuning is ongoing. Full
+record of what was done and every problem, for the report and the eventual how-to doc.
+
+### 17.1 Set-up done first
+- **AprilTag bundle**: generated printable 36h11 tags (ids 0/1/2) with OpenCV aruco
+  (`DICT_APRILTAG_36h11`), verified each decodes to the right id. Printed on A4; the
+  printer scaled to **87 %** (the 100 mm reference bar measured 87 mm), so the intended
+  150 mm black square came out **131 mm** → `size: 0.131` in `tags_36h11.yaml`.
+  Layout (robot's view): **id 2 LEFT — id 1 CENTRE — id 0 RIGHT**, coplanar, same height
+  ≈ camera, baseline **52 cm** centre-to-centre (id 1 in the middle). Order L/R doesn't
+  matter to the code (normal disambiguated toward the robot).
+- **Encoder calibration** (per Teensy power-cycle, WHEELS IN THE AIR): micro-ROS agent
+  on the Pi (`ros2 run micro_ros_agent micro_ros_agent serial -b 115200 -D /dev/ttyACM0`,
+  from `~/linorobot2_ws`), then `scripts/align_enc_cal.py --arm 250` from the PC. Loads
+  the ripple table into **Teensy RAM**. Ctrl-C-ing the agent does NOT lose it (the table
+  lives in the Teensy, not the agent — only a 24 V power-cycle clears it).
+- **Camera calibration**: already valid (`camera_info.yaml`, 1280×720, real intrinsics).
+- **Dock pose**: needs the robot localised (2D Pose Estimate). Read `map→tag_1` →
+  `dock_pose_x/y/yaw = 1.807 / 0.003 / 0.0`. (`dock_trigger` reads it at init → restart
+  needed after editing.)
+
+### 17.2 The docking runs — problems found while tuning
+Sequence: staging (Nav2) → centring scan → dock estimate → pre-dock on the normal →
+re-estimate → visual approach → docked. Problems / cause / fix:
+
+- **Hit the wall** — `docking_distance` 0.15 m (camera→tag) too close. → 0.35, then 0.25.
+- **Not straight** — the dock-normal estimate is noisy: Phase 4 re-estimate disagreed by
+  **5.5–10°** between runs. Cause: **id 2 marginal detection** (12–67 %) + the narrow
+  52 cm baseline (angle error ≈ noise / baseline). Real fix = reliable id 2 + wider
+  baseline (~90 cm). Not yet done.
+- **Obstacle guard false positive** — Phase 3 aborted on "obstacle at 0.38 m" in the
+  forward cone = the robot seeing **its own structure** (the `scan_body_filter` chops
+  only the rear ±40°, not this forward self-return). Worked around with
+  `obstacle_check_enabled:=false`. Also found a second self-return at **−104°, 0.185 m**
+  (a side post just outside the −96° close-mask) → widened `close_mask_sectors_deg` to −108°.
+- **Nav lifecycle stalls at boot** — planner_server/bt_navigator stay inactive
+  (`lifecycle_manager_navigation` autostart stalls) DESPITE the Day-2 `bond_timeout 60 s`
+  fix — it isn't taking on the installed launch. Workaround: manual activation each
+  bring-up (`ros2 lifecycle set /<node> activate`).
+- **Slow / stick-slip / AMCL jumps** — `drive_speed` was 0.05 m/s, **below the ~0.06 m/s
+  stick-slip floor** → juddery → bumped to 0.08. Separately AMCL corrects odometry drift
+  with visible jumps → the map-frame targets (Phases 1–4) jump; the final Phase 5 is
+  camera-frame (AMCL-independent).
+
+### 17.3 Camera focus — a whole saga
+- The camera ran in **Manual focus locked at infinity** (`AfMode=0`) → tags **blurry at
+  close range** (Phase 5) → bad detection → misalignment.
+- **Continuous AF** (`AfMode=2`) is sharp when static but **HUNTS during motion** (default
+  `AfSpeed=Normal`): Phase 5 froze its axis with **1 sample** (vs 63) → worse. → set
+  `AfSpeed=1` (Fast) + `AfRange=2` (Full) so it tracks smoothly.
+- **Side/edge focus is soft** — lens **field curvature** (hardware limit of the Module 3
+  lens). Matters least where it counts: the centre tag (Phase 5) is central and sharp;
+  the outer tags matter at far range where the bundle is small and central.
+- All camera focus params are live (`ros2 param set /camera AfMode/AfSpeed/LensPosition …`).
+
+### 17.4 The LiDAR-light problem (biggest perception issue)
+The RPLIDAR's IR laser sweeps a **bright dot across the tags**, periodically dropping
+apriltag detections. **Fix implemented in `dock_trigger.py`**: stop the LiDAR motor
+during the camera phases (`/stop_motor` at the staging zone, `/start_motor` in the
+`finally`), symmetric with the on-demand AprilTag gate, gated on `use_apriltag_gate`. The
+camera phases don't use the LiDAR (obstacle guard off; dock_trigger drives `/cmd_vel`
+directly, so the `collision_monitor` is already bypassed); Phase 1 (Nav2 → staging) keeps
+the LiDAR.
+
+### 17.5 Visual-servo tuning + live tuning
+Phase 5 (visual corrector on the centre tag) oscillated left-right and felt sluggish =
+**lag from over-smoothing** (`visual_servo_filter_alpha` too low). To stop restarting
+`dock_trigger` for every gain tweak, made **`visual_servo_kp`, `visual_servo_filter_alpha`
+and `scan_rotation_speed` live** (re-read each loop / at scan start) → tune with
+`ros2 param set /dock_trigger …`, no restart. Landed near `kp 0.4 / alpha 0.4` (ongoing).
+`scan_rotation_speed`: 0.3 too fast, 0.15 too slow (below the rotational stick-slip floor
+→ the robot won't turn) → 0.25.
+
+### 17.6 Current real-robot config
+`dock_trigger.yaml`: `dock_pose 1.807/0.003/0.0` · `docking_distance 0.25` · `drive_speed
+0.08` · `undock_reverse_distance 1.0` · `obstacle_check_enabled false` ·
+`scan_rotation_speed 0.25` · `line_yaw_kp 1.5` · `visual_servo_kp 0.4` ·
+`drive_yaw_max_omega 0.2` · `visual_servo_filter_alpha 0.4`. Camera: `size 0.131`,
+`AfMode 2 / AfSpeed Fast / AfRange Full`. `scan_body_filter_real.yaml`: close-mask −108°.
+
+### 17.7 Code changes in `dock_trigger.py` (to commit once validated)
+- Live-tunable `visual_servo_kp` / `visual_servo_filter_alpha` (per control-loop read) +
+  `scan_rotation_speed` (per-scan read).
+- **LiDAR-pause** during the camera phases (`_set_lidar`, `/stop_motor` + `/start_motor`).
+
+### 17.8 Open items (Day 4)
+- **id 2 reliability + wider baseline (~90 cm)** — the key fix for a straight dock.
+- Nav `bond_timeout` fix not taking on the installed launch (still manual activation).
+- Camera lens edge softness (hardware).
+- Finish visual-servo gain tuning, then **commit the docking config + code to the PR**.
+
+### 17.9 Memory infrastructure fixed
+The harness memory (`~/.claude/.../memory`) and the repo `claude-memory/` had diverged;
+merged (union, non-destructive) and **symlinked** the harness dir to `claude-memory/` so
+memory is versioned in the repo. Convention going forward: **memory → `claude-memory/`,
+technical docs → `docs/` (English)**.

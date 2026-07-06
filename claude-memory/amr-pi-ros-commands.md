@@ -11,7 +11,10 @@ metadata:
 chaque compact — c'est la méthode qui marche, ne pas réinventer.
 
 ## Accès & environnement
-- SSH : `ssh botshare@172.17.201.29` (**clé OK, pas de mot de passe** ; hostname `BOTSHARE`).
+- SSH : **`ssh botshare@botshare.local`** (**clé OK, pas de mot de passe** ; hostname `BOTSHARE`).
+  ⚠️ **IP en DHCP → elle CHANGE** (2026-07-06 : nouveau HW Pi + ancien SSD → `172.17.201.29` MORTE
+  → `172.17.17.64`). **Utiliser `botshare.local` (mDNS)**, pas l'IP en dur. Retrouver l'IP :
+  `getent hosts botshare.local`. Détails : [[pi-ssh-access]].
 - SSH non-interactif ne source PAS ROS → **toujours préfixer** :
   ```
   source /opt/ros/jazzy/setup.bash
@@ -49,8 +52,46 @@ l'agent, et logge dans un fichier ; lancé **détaché** ; puis on lit le log da
   `--qos-reliability best_effort`) : **x = rpm cible, y = rpm mesuré, z = counts encodeur cumulés**.
 - Aussi : `/debug/pwm`, `/cmd_vel`, `/imu/data`, `/odom/unfiltered`.
 
-## Bring-up complet (lidar+ekf+filtre+caméra), si besoin (shell interactif sur le Pi)
-`source ~/camera_ws/install/setup.bash && ros2 launch /home/botshare/openamr_real_bringup.launch.py`
+## Alim : SECTEUR sans batterie (recommandé pour tester, 2026-06-20)
+Batterie ET AC/DC 24 V sont en parallèle sur le même bus → **le robot tourne directement sur la brique
+secteur 24 V, sans batterie** (juste « à la laisse », câble limité). **C'est la meilleure config pour
+debugger** : 24 V stiff → enlève la variable « batterie faible » ([[amr-battery-voltage-check]]). Sur
+secteur, la roue gauche tient (test ci-dessous OK). Précautions : rouler lentement (l'alim n'a pas de
+réserve → pics d'accel/régen peuvent la faire disjoncter), gros condo 24 V optionnel, ne pas rouler sur le
+câble, sécurité 230 V (différentiel 30 mA). NB : un reboot du Pi **vide `/tmp`** → les scripts `/tmp/*.sh`
+sont à recréer.
 
-Sécurité tests moteurs : **roues en l'air**, main sur la coupure 24 V, PWM bas d'abord.
-Cf [[amr-session-suite-nav2-cyclone]], [[amr-encoder-5v-overvoltage]], [[amr-driver-balance-dip]].
+## STACK COMPLÈTE Nav2 — `/tmp/bringall.sh` (lancer détaché, voir recette du piège SSH)
+Tue tout, puis lance dans l'ordre : bring-up (`~/openamr_real_bringup.launch.py` = agent+lidar+EKF+filtre+
+caméra+TF) → `localization_launch.py map:=~/maps/coin_ok.yaml` → `navigation_launch.py` → `goal_relay.py`.
+Source les 4 workspaces (jazzy + linorobot2_ws + camera_ws + openamr-platform-sw/ros2/install) + Cyclone +
+domain 0. Lancer : `nohup setsid bash /tmp/bringall.sh >/dev/null 2>&1 </dev/null &` ; attendre `### UP`.
+⚠️ ORDRE LIFECYCLE : après le lancement, faire le **2D Pose Estimate** dans RViz pour donner `map→odom`,
+sinon costmaps vides (cf [[amr-nav2-bringup]] piège #8). Carte = `~/maps/coin_ok.yaml`.
+
+## TESTS MOTEURS/ENCODEURS (scripts à recréer si /tmp vidé)
+- **Agent seul** (vérifie Teensy, ne bouge pas) `/tmp/agentup.sh` : pkill agent → `ros2 run micro_ros_agent
+  micro_ros_agent serial -b 115200 -D <by-id>` → liste topics → `sleep 3600`. Topics attendus : /debug/*,
+  /odom/unfiltered, /imu/data, /cmd_vel.
+- **Test roues à vide** `/tmp/wtest.sh` (roues EN L'AIR) : echo /debug/left|right (best_effort, field y) →
+  `ros2 topic pub -t 60 -r 10 /debug/openloop ... "{x:300,y:300,z:0}"` → compte les rpm non-nuls G vs D.
+  Sain = les deux ~continus. Gauche=0/intermittent = faux-contact ([[amr-left-wheel-faux-contact]]).
+- **Test au sol en charge** `/tmp/gtest.sh` (AU SOL, espace devant) : capture odom start/end +
+  `ros2 topic pub -t 40 -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear:{x:0.10},angular:{z:0.0}}"` puis
+  pub 0 (watchdog) → vérifie déplacement + G/D égalisés (PID). 2026-06-20 sur secteur : G/D OK, gauche tient.
+
+## VÉRIF NAV (bornées — JAMAIS `topic hz` en SSH, ça bloque/timeout)
+- Lifecycle : `ros2 lifecycle get /controller_server` (active). Localisé : `ros2 topic echo /amcl_pose --once`.
+- **Costmaps non vides** (sinon robot aveugle) :
+  `ros2 topic echo /global_costmap/costmap --field data --once | tr ',' '\n' | grep -vE '^0$|^-1$|^$' | wc -l` (>0)
+  (idem /local_costmap). Clear : `ros2 service call /local_costmap/clear_entirely_local_costmap nav2_msgs/srv/ClearEntireCostmap "{}"`.
+- Réglages à chaud : footprint/inflation/min_range cf [[amr-nav2-bringup]].
+
+## CÔTÉ PC (Ubuntu) pour RViz
+Chaque terminal : `source /opt/ros/jazzy/setup.bash; export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp;
+export ROS_DOMAIN_ID=0` puis `rviz2`. Fixed Frame=`map` ; Displays : Map `/map`, LaserScan `/scan_filtered`
+(Best Effort), Costmap local+global, Polygon `/local_costmap/published_footprint`. Outils : **2D Pose
+Estimate** (localiser) → **2D Goal Pose** (but, PAS « Nav2 Goal »).
+
+Sécurité tests moteurs : **roues en l'air** (ou espace dégagé + main prête à couper), PWM bas d'abord.
+Cf [[amr-session-suite-nav2-cyclone]], [[amr-encoder-5v-overvoltage]], [[amr-driver-balance-dip]], [[amr-next-session-plan]].
