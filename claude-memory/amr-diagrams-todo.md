@@ -15,7 +15,7 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 ## HW — `openamr-platform-hw` (branche `feature/hardware-audit`)
 - [x] `electrical/wiring/wiring-pinout.md` — **Wiring harness (system overview)** ✅ FAIT (diagrams/wiring-harness.svg, vérifié)
 - [x] `electrical/wiring/wiring-pinout.md` — **Teensy 4.0 pin map** ✅ FAIT (diagrams/teensy-pinout.svg, vérifié)
-- [ ] `electrical/wiring/wiring-pinout.md` — **Driver signal + power connections** (ZBLD) — ⚠️ 1re génération FAUSSE (ordre bornes groupé + FR) ; PROMPT CORRIGÉ dans le doc (ordre 12 bornes bas→haut explicite, anglais) → à RE-générer
+- [x] `electrical/wiring/wiring-pinout.md` — **Driver signal + power connections** ✅ FAIT (v2, diagrams/driver-connections.svg, ordre bornes + anglais vérifiés). **wiring-pinout.md = 4/4 figures, 0 prompt résiduel**
 - [x] `electrical/wiring/wiring-pinout.md` — **Driver DIP switch settings** ✅ FAIT (diagrams/driver-dip-switches.svg, vérifié)
 - [x] `electrical/power_distribution/power.md` — **Power distribution** ✅ FAIT (diagrams/power-distribution.svg, vérifié)
 - [ ] `electrical/motor_control/motors-drivers.md` — **Motor control signal chain** (/cmd_vel→Teensy PID→driver→BLDC→roue→encodeur)
