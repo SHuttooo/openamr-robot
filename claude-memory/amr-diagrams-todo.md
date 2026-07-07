@@ -16,7 +16,7 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - [x] `electrical/wiring/wiring-pinout.md` — **Wiring harness (system overview)** ✅ FAIT (diagrams/wiring-harness.svg, vérifié)
 - [x] `electrical/wiring/wiring-pinout.md` — **Teensy 4.0 pin map** ✅ FAIT (diagrams/teensy-pinout.svg, vérifié)
 - [ ] `electrical/wiring/wiring-pinout.md` — **Driver signal + power connections** (ZBLD, 4 bornes câblées)
-- [ ] `electrical/wiring/wiring-pinout.md` — **Driver DIP switch settings** (SW1..SW6 dans l'état appliqué)
+- [x] `electrical/wiring/wiring-pinout.md` — **Driver DIP switch settings** ✅ FAIT (diagrams/driver-dip-switches.svg, vérifié)
 - [ ] `electrical/power_distribution/power.md` — **Power distribution** (24 V→drivers, buck→5 V→Pi, 3.3 V logique ; gaps fusible/E-stop)
 - [ ] `electrical/motor_control/motors-drivers.md` — **Motor control signal chain** (/cmd_vel→Teensy PID→driver→BLDC→roue→encodeur)
 - [ ] `electrical/sensors/encoders.md` — **AS5040 encoder wiring** (quadrature, rail 3.3 V, A/B→pins)
