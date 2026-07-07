@@ -1,10 +1,26 @@
 ---
 name: amr-next-session-plan
-description: "Point de reprise (au 2026-07-06) — ce qu'il reste à faire. À relire au début de chaque session."
+description: "Point de reprise (au 2026-07-07) — ce qu'il reste à faire. À relire au début de chaque session."
 metadata:
   node_type: memory
   type: project
   originSessionId: 6da325ad-d900-4dba-9896-6d398a31000d
+---
+
+## 🔋 PRIORITÉ ZÉRO (2026-07-07) : RECHARGER LA BATTERIE
+La session du 07-07 s'est terminée **batterie à plat** : le docking-scan (rotation sur place) ne
+démarrait plus (« envoie 0,3/0,5 mais bouge pas ») alors que la nav avançait → **couple mou = batterie**,
+pas le code (cf [[amr-battery-voltage-check]], signature « nav OK mais rotation-sur-place cale »).
+**Recharger ≥25V au multimètre AVANT tout re-test**, sinon on debugge le docking pour rien.
+
+## 📌 État docking au 2026-07-07 (branche `fix/docking-near-servo-af`, déployée sur le Pi)
+- **Correcteur d'approche AMÉLIORÉ et validé** ("c'est aligné") — restauré au commit **31fe8b1** :
+  fix dérivée dt, compensation profondeur, report orientation odométrie, gel normale, moyenne pondérée.
+- **Gate = brut** (4 Hz, TF correct). Autofocus continu OK. Gyro recalibré.
+- **CHANTIER RESTANT = débit du gate** ([[amr-docking-gate-4hz-bottleneck]]) : le scan est fragile s'il
+  doit tourner pour chercher. Piste : gate C++ intra-process OU scan tolérant (tag centre seul).
+- Détail complet : `docs/2026-07-07-session-docking-corrector-rewrite.md`.
+
 ---
 
 **Point de reprise au 2026-07-06 (fin de session robot).** Ce qui MARCHE + ce qui RESTE.

@@ -18,3 +18,14 @@ on debugge Nav2 alors que le vrai souci est le 24 V (déjà arrivé plusieurs fo
 **How to apply:** avant un test, multimètre sur le pack. Si < 25 V au repos → **recharger d'abord**, ne pas
 conclure d'un test d'évitement. Relevé 2026-06-20 : **23,4 V → trop bas**, tests non concluants.
 Détails : docs/hardware/power.md (table des seuils). Cf [[amr-nav2-bringup]], [[amr-next-session-plan]].
+
+## ⚠️ SIGNATURE-CLÉ (2026-07-07) : « il bouge en NAV mais CALE en rotation sur place » = batterie basse
+Symptôme diagnostic vécu tout un soir avant de trouver : le robot **avançait** en navigation mais le
+**scan de docking (rotation sur place) ne démarrait pas** — « ça envoie 0,3 puis 0,5 rad/s mais il ne
+bouge pas ». **Ce n'est PAS le code, c'est le couple / la batterie.** Pourquoi ce split :
+- **Avancer** = 2 roues même sens + **inertie** + peu de couple → passe encore batterie faible.
+- **Tourner sur place** = 2 roues sens opposés, **aucune inertie**, vaincre la friction statique des
+  deux côtés à l'arrêt = **le mouvement le plus gourmand en couple** → cale en premier quand le jus baisse.
+Donc **« nav OK mais rotation-sur-place qui cale » = drapeau rouge batterie**, à vérifier AVANT de
+debugger le docking/scan. ⚠️ **La tension n'est PAS publiée dans ROS** (`/diagnostics` = caméra
+seulement) → **multimètre obligatoire**. Une longue session (heures) décharge assez pour déclencher ça.
