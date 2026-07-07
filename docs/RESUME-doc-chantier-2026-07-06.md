@@ -1,7 +1,28 @@
 # Reprise — chantier documentation platform (SW/FW/HW) + PR
 
-Point d'arrêt 2026-07-06 (session coupée = fin de tokens). Tout le travail committé est **sauvegardé
-en git** sur des branches feature. Ce fichier = état + ce qui reste à faire.
+Point d'arrêt 2026-07-06, **mis à jour 2026-07-07**. Ce fichier = état + ce qui reste à faire.
+**Auto-suffisant** : une session fraîche (Sonnet) doit pouvoir reprendre sans autre contexte.
+
+## 🧭 CONTEXTE POUR UNE SESSION FRAÎCHE (repos, remotes, méthode)
+- **Repos** (tous sur le fork perso `SHuttooo`, l'utilisateur ouvre les PR vers upstream `openAMRobot` lui-même — Claude n'a PAS accès upstream) :
+  - `~/Documents/openamr` = repo NOTES/DOC/MÉMOIRE perso (`origin` = SHuttooo/openamr-robot, branche `master`). Sessions journalières + `claude-memory/`.
+  - `~/Documents/openAMRobot/openamr-platform-sw` = code SW (Nav2/docking/perception/bringup). `origin`/`upstream`.
+  - `~/Documents/openAMRobot/openamr-platform-fw` = firmware Teensy.
+  - `~/Documents/openAMRobot/openamr-platform-hw` = hardware (électrique, méca, BOM). **Schéma câblage = `electrical/wiring/wiring-pinout.md`** (texte + carte ASCII, vérifié 19-06 ; PAS de schéma graphique).
+  - `~/Documents/openAMRobot/openamrobot-ui` = UI (React+rosbridge). **⚠️ NE PAS TOUCHER / NE PAS PUSHER** (consigne utilisateur).
+- **Règles** : commits **sans mention Claude** ([[amr-commit-no-claude]]) ; **PAS de force-push** (fast-forward only) ; commandes toujours complètes/copiables.
+- **Méthode qui marche** (voir bas de fichier) : rédaction par agents parallèles (fichiers disjoints) → **audit adversarial** (chaque valeur vérifiée contre le code source) → fixes → commit. Ne PAS sauter l'audit (a trouvé de vrais faits faux).
+
+## 📤 ÉTAT PUSH AU 2026-07-07 (ce qui est DÉJÀ sur le fork)
+- ✅ **FW** `feature/teensy-4-0-linorobot2-overlay` — poussé.
+- ✅ **HW** `feature/hardware-audit` — poussé.
+- ✅ **NOTES** `openamr` master — poussé.
+- ✅ **SW** poussées : `feature/docking-apriltag-gate`, `feature/vision-composition`, `feature/diagnostics`, `feature/real-robot-docs` (docs SW), `fix/docking-near-servo-af` (docking du 07-07, backup).
+- ⚠️ **SW REJETÉES (non-fast-forward, à réconcilier — JAMAIS en force)** : le fork distant a des commits que le local n'a pas :
+  - `feature/perception-scan-body-filter` : local +2 / **remote +1**
+  - `feature/nav2-real-tuning` : local +3 / **remote +4** (le plus divergent)
+  - `feature/real-bringup` : local +2 / **remote +2**
+  → Reprise : `git fetch`, inspecter ce que le remote a en plus (`git log local..origin/<b>`), décider merge/rebase à la main. Ne pas écraser.
 
 ---
 
@@ -47,11 +68,13 @@ en git** sur des branches feature. Ce fichier = état + ce qui reste à faire.
 
 4. **Mémoire** : `amr-left-wheel-faux-contact.md` + `MEMORY.md` → marquer le faux-contact **RÉSOLU** ; réalité actuelle = câble occasionnel (rebrancher) + cale au démarrage (relancer). *(fait en partie ce jour — vérifier.)*
 
-5. **Pousser les branches** sur le fork (`origin`) — Step 0 du PR-PLAN. L'utilisateur ouvre les PR lui-même (pas d'accès upstream pour Claude). Fast-forwards, pas de force-push.
+5. **Pousser les branches** — ✅ **FAIT en grande partie le 07-07** (voir "ÉTAT PUSH" en haut). Reste : réconcilier les 3 branches SW rejetées (perception-scan-body-filter, nav2-real-tuning, real-bringup) — le remote a des commits en plus, à merger/rebaser à la main, PAS en force.
 
 6. **(optionnel)** READMEs des packages SW touchés (nav2/bringup/docking/perception) ; slots `docs/simulation/` + `docs/docking/` racine (vides, basse priorité — docking a déjà sa série package).
 
 7. **Nettoyer le worktree** : `git worktree remove` sur `scratchpad/wt/sw-docs`.
+
+8. **(07-07) Branche docking `fix/docking-near-servo-af`** (poussée, backup) — contient de VRAIS fixes correcteur (dérivée dt, compensation profondeur, report orientation odométrie, gel normale) VALIDÉS "c'est aligné" (état commit `31fe8b1`), MAIS aussi du bruit annulé (2 tentatives gate cassées, réglages scan). L'**autofocus continu** (`camera.launch.py`, `AfMode:2`) est un bon fix perception à isoler dans une PR propre. À froid : extraire les bons commits correcteur + l'autofocus en branche(s) propre(s) pour PR. Chantier gate 4Hz encore ouvert (cf [[amr-docking-gate-4hz-bottleneck]]). Détail : `docs/2026-07-07-session-docking-corrector-rewrite.md`.
 
 ---
 
