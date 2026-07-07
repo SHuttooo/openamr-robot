@@ -153,6 +153,21 @@ ros2 topic echo /cmd_vel
 ros2 param get /planner_server GridBased.downsample_costmap
 ```
 
+### Lancer en arrière-plan avec logs complets (session d'audit/enregistrement)
+Le bring-up ci-dessus (étape 1) tourne en foreground dans le terminal SSH — c'est le cas normal,
+les logs Python sortent sur un vrai TTY donc s'affichent en direct. Si on a besoin de le lancer
+**détaché** (`nohup ... > fichier.log 2>&1 &`, ex. pour un test automatisé/enregistré), Python
+bascule en **full buffering** dès que stdout n'est plus un TTY : les logs (ex. `dock_trigger.py`
+en plein milieu du docking) restent coincés dans le buffer et n'apparaissent qu'à la fin du
+process — piège rencontré le 07/07 (logs `[P5] depth=...` du docking perdus). **Fix** : préfixer
+par `PYTHONUNBUFFERED=1` :
+```bash
+PYTHONUNBUFFERED=1 nohup ros2 launch openamrobot_bringup bringup.launch.py \
+  map:=/home/botshare/maps/piece_actuelle.yaml use_docking:=true \
+  > /home/botshare/bringup_docking.log 2>&1 &
+disown
+```
+
 ---
 
 ## Reste à faire
