@@ -1,0 +1,43 @@
+---
+name: amr-diagrams-todo
+description: "Checklist des 15 diagrammes à générer : placeholders déjà posés dans les docs FW/HW/SW (chacun avec son prompt Claude intégré). Liste ici pour ne rien oublier avant la release."
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: 6da325ad-d900-4dba-9896-6d398a31000d
+---
+
+**2026-07-08 — Diagrammes à faire.** Des **placeholders** ont été posés dans les docs (repos FW/HW/SW),
+chacun contenant **le prompt exact à coller à Claude** pour générer l'image, au bon endroit, le texte
+autour rédigé comme si le diagramme existait déjà. Il reste à **générer les images** depuis ces prompts
+et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Diagram:` dans les docs.
+
+## HW — `openamr-platform-hw` (branche `feature/hardware-audit`)
+- [ ] `electrical/wiring/wiring-pinout.md` — **Wiring harness (system overview)** ⭐ le plus important (câblage complet)
+- [ ] `electrical/wiring/wiring-pinout.md` — **Teensy 4.0 pin map** (pinout physique annoté)
+- [ ] `electrical/wiring/wiring-pinout.md` — **Driver signal + power connections** (ZBLD, 4 bornes câblées)
+- [ ] `electrical/wiring/wiring-pinout.md` — **Driver DIP switch settings** (SW1..SW6 dans l'état appliqué)
+- [ ] `electrical/power_distribution/power.md` — **Power distribution** (24 V→drivers, buck→5 V→Pi, 3.3 V logique ; gaps fusible/E-stop)
+- [ ] `electrical/motor_control/motors-drivers.md` — **Motor control signal chain** (/cmd_vel→Teensy PID→driver→BLDC→roue→encodeur)
+- [ ] `electrical/sensors/encoders.md` — **AS5040 encoder wiring** (quadrature, rail 3.3 V, A/B→pins)
+- [ ] `README.md` — **System block diagram** (compute/actuation/sensing/power)
+
+## FW — `openamr-platform-fw` (branche `feature/teensy-4-0-linorobot2-overlay`)
+- [ ] `docs/architecture/control-loop.md` — **Motor control loop** (PID + feedforward + anti-windup, 50 Hz)
+- [ ] `docs/bringup/micro-ros-bringup.md` — **micro-ROS node topology** (Teensy client ↔ agent Pi ↔ ROS graph)
+- [ ] `docs/architecture/debug-telemetry.md` — **Debug/telemetry topic map** (commandes vs télémétrie)
+- [ ] `docs/architecture/encoder-calibration.md` — **Encoder ripple calibration workflow** (calib par boot)
+
+## SW — `openamr-platform-sw` (branche `feature/real-robot-docs-pr`)
+- [ ] `docs/real_robot/02_networking_and_dds.md` — **Networking & DDS topology** (PC/Pi/Teensy + pièges FastDDS/domain)
+- [ ] `docs/safety/01_collision_monitor.md` — **Reactive-safety velocity chain** (controller→smoother→collision_monitor→/cmd_vel)
+- [ ] `docs/real_robot/03_vision_pipeline_and_cpu.md` — **Vision pipeline 3-process vs intra-process** (avant/après)
+
+## Méthode / convention
+- Format placeholder = blockquote `> ### 📐 Diagram: <titre>` + caption + un bloc ``` avec le prompt Claude.
+- Chaque doc référence déjà le diagramme dans le texte (« shown below », « the diagram above »).
+- **NE PAS** générer 36 diagrammes partout — seulement les points à vraie valeur (câblage, puissance,
+  boucle de contrôle, topologie). C'est la consigne utilisateur : « pas des diagrams qui servent à rien ».
+- Une fois l'image faite : la mettre dans un dossier `diagrams/` (ou `docs/img/`) du repo, `![...](...)`,
+  et retirer le bloc prompt (ou le garder en commentaire HTML pour régénérer).
+- SW a déjà des diagrammes ASCII dans `openamrobot_docking/docs/` — ne pas doublonner.
