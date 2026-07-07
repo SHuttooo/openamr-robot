@@ -38,6 +38,10 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - Chaque doc référence déjà le diagramme dans le texte (« shown below », « the diagram above »).
 - **NE PAS** générer 36 diagrammes partout — seulement les points à vraie valeur (câblage, puissance,
   boucle de contrôle, topologie). C'est la consigne utilisateur : « pas des diagrams qui servent à rien ».
+- ⚠️ **BUG DE PLACEMENT à éviter** : pour retirer le bloc placeholder, NE PAS utiliser un regex non-greedy
+  `(?:>.*\n)*?> ```` `` qui s'arrête à la fence OUVRANTE → laisse le prompt en blockquote VISIBLE après l'image
+  (arrivé 2× le 08-07). Retirer le bloc ENTIER (title→fence fermante), puis GREPER les orphelins :
+  `grep -rn '^> ```' ` et `^> (Draw|Create|Highlight|pos [0-9])` doivent renvoyer 0.
 - Une fois l'image faite : la mettre dans un `diagrams/` du repo, `![...](...)`, **et RETIRER complètement
   le bloc prompt** (image seule). ⚠️ NE PAS le garder en commentaire HTML : un commentaire mal formé a
   laissé le prompt VISIBLE en blockquote sur GitHub (bug 08-07). Les prompts restent dans l'historique git.
