@@ -32,6 +32,16 @@ cohérents ; tensions 3.3V (AS5040/IMU) ; copyright OpenAMRobot 2026 ; aucun sec
    *ce qu'est une release + comment en faire une correctement*, cadré **v0.01** (SemVer, tag, checklist).
    À rédiger en anglais, prêt à coller.
 
+## Audit PROFESSIONNALISME des docs (2026-07-08) — fait, verdict OK
+Globalement **professionnel** : structure/profondeur OK, pas de français résiduel, build artifacts
+(`install/build/log`) bien gitignorés, meta files complets, placeholders honnêtement déclarés.
+Points relevés, **volontairement NON corrigés (choix utilisateur : garder la voix ingénieur honnête)** :
+- Ton « journal de dev » dans `power.md` HW (« for nothing », « end of session », « a whole session ») — ASSUMÉ.
+- Sections `## TODO` dans power.md / camera.md HW (pourraient être « Open items »).
+- ⚠️ 2 vrais défauts (pas du ton) laissés en l'état sur demande : chemin PERSO `~/Documents/openamr` dans
+  FW `docs/architecture/encoder-calibration.md` ; lien cassé `openamrobot_docking/docs/09_troubleshooting.md`
+  → `../../CONTRIBUTING.md` (mauvaise profondeur, devrait être `../../../../`). À fixer si un jour souhaité.
+
 ## Autres chantiers en cours (rappels)
 - [[amr-diagrams-todo]] : 15 diagrammes à générer (placeholders posés, prompts inclus).
 - Docking = priorité de Matthieu pour la démo (Vendredi). Nav + UI = OK/contents.
