@@ -38,6 +38,7 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - Chaque doc référence déjà le diagramme dans le texte (« shown below », « the diagram above »).
 - **NE PAS** générer 36 diagrammes partout — seulement les points à vraie valeur (câblage, puissance,
   boucle de contrôle, topologie). C'est la consigne utilisateur : « pas des diagrams qui servent à rien ».
-- Une fois l'image faite : la mettre dans un dossier `diagrams/` (ou `docs/img/`) du repo, `![...](...)`,
-  et retirer le bloc prompt (ou le garder en commentaire HTML pour régénérer).
+- Une fois l'image faite : la mettre dans un `diagrams/` du repo, `![...](...)`, **et RETIRER complètement
+  le bloc prompt** (image seule). ⚠️ NE PAS le garder en commentaire HTML : un commentaire mal formé a
+  laissé le prompt VISIBLE en blockquote sur GitHub (bug 08-07). Les prompts restent dans l'historique git.
 - SW a déjà des diagrammes ASCII dans `openamrobot_docking/docs/` — ne pas doublonner.
