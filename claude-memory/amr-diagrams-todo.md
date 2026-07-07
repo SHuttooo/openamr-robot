@@ -33,6 +33,18 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - [ ] `docs/safety/01_collision_monitor.md` — **Reactive-safety velocity chain** (controller→smoother→collision_monitor→/cmd_vel)
 - [ ] `docs/real_robot/03_vision_pipeline_and_cpu.md` — **Vision pipeline 3-process vs intra-process** (avant/après)
 
+## Format placeholder ROBUSTE (2026-07-08) — les problèmes qu'on a eus + la solution
+**Problèmes rencontrés (à ne plus refaire) :**
+1. Commentaire HTML mal formé → le prompt restait VISIBLE en blockquote sur GitHub (2×).
+2. Regex de placement non-greedy `(?:>.*\n)*?> ```` `` → s'arrêtait à la fence OUVRANTE → prompt orphelin.
+3. SVG à fond transparent → rendu incohérent (fond blanc à injecter).
+**Solution en place pour les 7 placeholders FW/SW restants :** chaque diagramme non généré =
+  (a) une **ligne stub VISIBLE sans prompt** : `> 📐 **[Diagram: <titre>]** — placeholder...`
+  (b) le **prompt + l'instruction de remplacement dans un commentaire HTML** (invisible sur GitHub).
+  → Pour placer : remplacer la ligne stub + le commentaire par la SEULE ligne image `![...](diagrams/<slug>.svg)`
+    que le commentaire dicte. Le prompt ne peut PLUS jamais fuiter (il est dans le commentaire).
+  → Après placement, GREP de contrôle : `^> \`\`\`` et `^> (Draw|Create|Highlight)` = 0 (hors exemples de code légitimes).
+
 ## Style uniforme des diagrammes (2026-07-08)
 - **Fond BLANC obligatoire** : les SVG transparents cassent le rendu → injecter un `<rect>` pleine
   toile `fill="#ffffff"` juste après `<svg>`. (3 SVG HW re-fondus le 08-07.)
