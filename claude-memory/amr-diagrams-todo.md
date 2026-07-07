@@ -20,7 +20,7 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - [x] `electrical/power_distribution/power.md` — **Power distribution** ✅ FAIT (diagrams/power-distribution.svg, vérifié)
 - [x] `electrical/motor_control/motors-drivers.md` — **Motor control signal chain** ✅ FAIT (diagrams/signal-chain.svg, vérifié)
 - [x] `electrical/sensors/encoders.md` — **AS5040 encoder wiring** ✅ FAIT (diagrams/encoder-wiring.svg, vérifié)
-- [ ] `README.md` — **System block diagram** (compute/actuation/sensing/power)
+- [x] `README.md` — **System block diagram** ✅ FAIT (diagrams/system-block.svg, vérifié). **HW = 8/8 diagrammes, repo 100% propre**
 
 ## FW — `openamr-platform-fw` (branche `feature/teensy-4-0-linorobot2-overlay`)
 - [ ] `docs/architecture/control-loop.md` — **Motor control loop** (PID + feedforward + anti-windup, 50 Hz)
