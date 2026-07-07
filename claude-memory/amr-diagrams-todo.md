@@ -19,7 +19,7 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - [x] `electrical/wiring/wiring-pinout.md` — **Driver DIP switch settings** ✅ FAIT (diagrams/driver-dip-switches.svg, vérifié)
 - [x] `electrical/power_distribution/power.md` — **Power distribution** ✅ FAIT (diagrams/power-distribution.svg, vérifié)
 - [x] `electrical/motor_control/motors-drivers.md` — **Motor control signal chain** ✅ FAIT (diagrams/signal-chain.svg, vérifié)
-- [ ] `electrical/sensors/encoders.md` — **AS5040 encoder wiring** (quadrature, rail 3.3 V, A/B→pins)
+- [x] `electrical/sensors/encoders.md` — **AS5040 encoder wiring** ✅ FAIT (diagrams/encoder-wiring.svg, vérifié)
 - [ ] `README.md` — **System block diagram** (compute/actuation/sensing/power)
 
 ## FW — `openamr-platform-fw` (branche `feature/teensy-4-0-linorobot2-overlay`)
