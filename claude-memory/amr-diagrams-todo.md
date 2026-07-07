@@ -33,6 +33,16 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - [ ] `docs/safety/01_collision_monitor.md` — **Reactive-safety velocity chain** (controller→smoother→collision_monitor→/cmd_vel)
 - [ ] `docs/real_robot/03_vision_pipeline_and_cpu.md` — **Vision pipeline 3-process vs intra-process** (avant/après)
 
+## Style uniforme des diagrammes (2026-07-08)
+- **Fond BLANC obligatoire** : les SVG transparents cassent le rendu → injecter un `<rect>` pleine
+  toile `fill="#ffffff"` juste après `<svg>`. (3 SVG HW re-fondus le 08-07.)
+- **Palette partagée** (hex explicites, PAS de `var(--...)`) : 24 V/power=rouge #c0392b, 5 V=orange
+  #e67e22, 3.3 V logique=bleu #2c6fbb, data=gris #888, warning/danger=rouge, wired/OK=vert #2e8b57.
+- Les **7 prompts restants (FW/SW) contiennent déjà ce bloc STYLE** → les prochaines générations
+  seront cohérentes. Après placement d'un SVG, vérifier qu'il a bien un fond blanc.
+- Astuce `var(--...)` : si un SVG en a, ce n'est cassé QUE si pas de `style="fill:rgb(...)"` inline
+  (le style inline l'emporte → couleurs OK). teensy-pinout était dans ce cas = OK.
+
 ## Méthode / convention
 - Format placeholder = blockquote `> ### 📐 Diagram: <titre>` + caption + un bloc ``` avec le prompt Claude.
 - Chaque doc référence déjà le diagramme dans le texte (« shown below », « the diagram above »).
