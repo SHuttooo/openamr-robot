@@ -42,6 +42,20 @@ Points relevés, **volontairement NON corrigés (choix utilisateur : garder la v
   FW `docs/architecture/encoder-calibration.md` ; lien cassé `openamrobot_docking/docs/09_troubleshooting.md`
   → `../../CONTRIBUTING.md` (mauvaise profondeur, devrait être `../../../../`). À fixer si un jour souhaité.
 
+## 🔧 À FAIRE DEMAIN (2026-07-09)
+1. **Vendorer les scripts de calibration encodeur dans `openamr-platform-fw`.** `align_enc_cal.py`,
+   `apply_enc_cal.py`, `encoder_ref_table.json`, `calibrate_and_apply.sh` sont **UNIQUEMENT** dans le
+   repo notes (`~/Documents/openamr/scripts/`), dans AUCUN repo de release. Or la doc FW
+   `docs/architecture/encoder-calibration.md` en DÉPEND (calib par boot, à relancer après chaque
+   power-cycle Teensy) → un utilisateur de release ne peut pas les obtenir. Les copier dans
+   `openamr-platform-fw` (ex. `tools/encoder-calibration/`) + brancher la doc dessus. **NE PAS les
+   supprimer du repo notes** (actifs).
+2. **Ménage code repo notes (en attente de décision).** Candidats redondants avec les repos de release :
+   `firmware/` (⊂ platform-fw), 11 scripts diagnostics (⊂ platform-sw tools/diagnostics), `config/`+`launch/`
+   (⊂ platform-sw). ⚠️ `firmware/`+`launch/` = ce que `deploy_to_pi.sh`/`apply_overlay.sh` déploient sur le
+   Pi → ne retirer QU'APRÈS avoir migré le workflow de déploiement vers les repos platform. **Demander avant
+   de supprimer** (consigne utilisateur, repo précieux).
+
 ## Autres chantiers en cours (rappels)
 - [[amr-diagrams-todo]] : 15 diagrammes à générer (placeholders posés, prompts inclus).
 - Docking = priorité de Matthieu pour la démo (Vendredi). Nav + UI = OK/contents.
