@@ -67,6 +67,16 @@ recroisé) → générer sans re-vérifier. SEUL point à confirmer sur la carte
 l'ordre exact des 12 bornes driver + label RS485 inutilisé (A+/B- vs B+ lu). Diagrammes FW/SW = logiques
 (dérivés du code, rien à mesurer).
 
+## 🌿 À FAIRE (reprise) — nettoyer les branches du fork SW
+Le fork `openamr-platform-sw` a **8 branches** ; objectif = **3-5 PR + main**. À GARDER : `main`,
+`feature/real-robot-bringup` (PR1), `feature/docking` (PR2), `feature/real-robot-docs-pr` (PR3),
+`fix/sim-wheel-geometry` (PR4 potentielle, en attente re-test sim). **Les 3 en trop (non-PR)** :
+- `local/test-all` — branche d'intégration (72 commits), PAS une PR. **Copie locale existe** → retirable
+  du fork sans risque (`git push origin --delete local/test-all`).
+- `matthieu/bundle-docking` (62 commits) + `matthieu/contribution` (10 commits) — **vieilles branches perso**
+  d'avant l'intégration. ⚠️ Les retirer du fork = **les PERDRE** si pas de copie locale. **DEMANDER à
+  l'utilisateur** avant (ce sont ses branches historiques, précieuses). Vérifier `git branch` local d'abord.
+
 ## Autres chantiers en cours (rappels)
 - [[amr-diagrams-todo]] : 15 diagrammes à générer (placeholders posés, prompts inclus).
 - Docking = priorité de Matthieu pour la démo (Vendredi). Nav + UI = OK/contents.
