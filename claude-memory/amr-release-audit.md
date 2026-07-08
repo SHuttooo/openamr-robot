@@ -42,7 +42,7 @@ Points relevés, **volontairement NON corrigés (choix utilisateur : garder la v
   FW `docs/architecture/encoder-calibration.md` ; lien cassé `openamrobot_docking/docs/09_troubleshooting.md`
   → `../../CONTRIBUTING.md` (mauvaise profondeur, devrait être `../../../../`). À fixer si un jour souhaité.
 
-## 🔧 À FAIRE DEMAIN (2026-07-09)
+## 🔧 À FAIRE (reprise — 2026-07-08, plus tard dans la journée)
 1. **Vendorer les scripts de calibration encodeur dans `openamr-platform-fw`.** `align_enc_cal.py`,
    `apply_enc_cal.py`, `encoder_ref_table.json`, `calibrate_and_apply.sh` sont **UNIQUEMENT** dans le
    repo notes (`~/Documents/openamr/scripts/`), dans AUCUN repo de release. Or la doc FW
