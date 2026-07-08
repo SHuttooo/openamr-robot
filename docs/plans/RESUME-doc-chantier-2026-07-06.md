@@ -74,7 +74,7 @@ Point d'arrêt 2026-07-06, **mis à jour 2026-07-07**. Ce fichier = état + ce q
 
 7. **Nettoyer le worktree** : `git worktree remove` sur `scratchpad/wt/sw-docs`.
 
-8. **(07-07) Branche docking `fix/docking-near-servo-af`** (poussée, backup) — contient de VRAIS fixes correcteur (dérivée dt, compensation profondeur, report orientation odométrie, gel normale) VALIDÉS "c'est aligné" (état commit `31fe8b1`), MAIS aussi du bruit annulé (2 tentatives gate cassées, réglages scan). L'**autofocus continu** (`camera.launch.py`, `AfMode:2`) est un bon fix perception à isoler dans une PR propre. À froid : extraire les bons commits correcteur + l'autofocus en branche(s) propre(s) pour PR. Chantier gate 4Hz encore ouvert (cf [[amr-docking-gate-4hz-bottleneck]]). Détail : `docs/2026-07-07-session-docking-corrector-rewrite.md`.
+8. **(07-07) Branche docking `fix/docking-near-servo-af`** (poussée, backup) — contient de VRAIS fixes correcteur (dérivée dt, compensation profondeur, report orientation odométrie, gel normale) VALIDÉS "c'est aligné" (état commit `31fe8b1`), MAIS aussi du bruit annulé (2 tentatives gate cassées, réglages scan). L'**autofocus continu** (`camera.launch.py`, `AfMode:2`) est un bon fix perception à isoler dans une PR propre. À froid : extraire les bons commits correcteur + l'autofocus en branche(s) propre(s) pour PR. Chantier gate 4Hz encore ouvert (cf [[amr-docking-gate-4hz-bottleneck]]). Détail : `docs/history/2026-07-07-docking-corrector-rewrite.md`.
 
 ---
 

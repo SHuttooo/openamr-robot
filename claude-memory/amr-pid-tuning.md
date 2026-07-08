@@ -70,4 +70,4 @@ full = `scripts/calibrate_and_apply.sh`. Le script parle au firmware via `/debug
 diagrammes : `docs/data/encoder_calib_*.json`. Récit complet : `docs/history/encoder-calibration.md`.
 
 Le firmware a le RPM précis (méthode période) et le live-tune `/debug/tune` qui marche (voir
-[[amr-architecture-doc]] §firmware). Détail complet dans `docs/CHANGELOG-FIXES.md`.
+[[amr-architecture-doc]] §firmware). Détail complet dans `docs/history/2026-06-26-fix-log.md`.

@@ -33,7 +33,7 @@ The bring-up launch starts everything except SLAM (SLAM is launched separately).
 | `/debug/left,right,pwm` | `geometry_msgs/Vector3` | Teensy | best-effort: x=target rpm, y=measured rpm, z=counts (left/right); pwm |
 | `/debug/openloop` | `geometry_msgs/Vector3` | → Teensy | open-loop motor test |
 
-Full details (types, QoS, buses): [../01-communication.md](../01-communication.md).
+Full details (types, QoS, buses): [../01-communication.md](../reference/01-communication.md).
 
 ## TF tree
 ```

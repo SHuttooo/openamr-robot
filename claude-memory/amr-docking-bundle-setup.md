@@ -8,7 +8,7 @@ metadata:
 ---
 
 Docking AprilTag **sans dock physique** (le bundle EST la cible). Robot réel, map `piece_actuelle`.
-Capturé 2026-07-01. Voir [[amr-apriltag-on-demand-gate]] (gate CPU) et le runbook `docs/RUNBOOK-real-robot.md`.
+Capturé 2026-07-01. Voir [[amr-apriltag-on-demand-gate]] (gate CPU) et le runbook `docs/reference/RUNBOOK-real-robot.md`.
 
 ## Bundle physique
 - 3 tags **36h11**, IDs **0/1/2**. Taille = **carré noir 0.131 m** (imprimé à 87 % sur A4 → mesuré ;
@@ -99,7 +99,7 @@ GAUCHE = M1, DROITE = M2. Voir [[amr-driver-balance-dip]].
   la vitesse/omega en Phase 5 FAR + garde-fou anti-runaway.
 
 ## Day 5 (2026-07-02) — visual servo rebuild + THE latency root cause (English going forward)
-Full day: `docs/AUDIT-2026-07-02-vision-latency-and-compute.md`. Root cause: [[amr-vision-latency-cpu]].
+Full day: `docs/history/2026-07-02-audit-vision-latency-and-compute.md`. Root cause: [[amr-vision-latency-cpu]].
 - **Phase-5 visual corrector REBUILT** (`_final_visual_approach`): camera-frame **PD** on the tag-1
   bearing `omega=-(kp·bearing+kd·d)`, made dominant (raised `freeze_axis_distance` to 1.5, line only
   does the far coarse leg); **hysteresis deadband** (`visual_align_deadband` 0.10) so it drives straight

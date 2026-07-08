@@ -19,7 +19,7 @@ wheel's target speed (differential kinematics), reads the **encoders**, runs a p
 
 ## Communication
 - **To the Pi**: USB serial, **micro-ROS (XRCE-DDS)** protocol, **115200 baud**. The Teensy is the
-  *client*; the *agent* runs on the Pi. (details: [01-communication.md](../01-communication.md))
+  *client*; the *agent* runs on the Pi. (details: [01-communication.md](../reference/01-communication.md))
 - **To the IMU**: I²C (SDA pin 18, SCL pin 19), address 0x68. ([imu.md](imu.md))
 - **To the encoders**: A/B quadrature on interrupts. ([encoders.md](encoders.md))
 - **To the drivers**: PWM + 2 direction lines per motor. ([motors-drivers.md](motors-drivers.md))

@@ -27,4 +27,4 @@ Après : gyro à ~0 (vérifier `ros2 topic echo /imu/data --once` → `angular_v
 - Après tout power-cycle Teensy → **refaire la calibration encodeur** (`align_enc_cal.py`, table RAM
   perdue) — cf [[amr-pid-tuning]].
 - ⚠️ Ce biais gyro masquait un autre bug : le deadlock d'accélération nav ([[amr-nav-accel-deadlock]]).
-Cf `docs/2026-07-06-session-robot-nav-gyro-ui.md`.
+Cf `docs/history/2026-07-06-nav-gyro-ui.md`.

@@ -7,7 +7,7 @@ metadata:
   originSessionId: 6da325ad-d900-4dba-9896-6d398a31000d
 ---
 
-`docs/ARCHITECTURE.md` (dans le repo instance `openamr`) est LE document de référence unique qui
+`docs/reference/ARCHITECTURE.md` (dans le repo instance `openamr`) est LE document de référence unique qui
 explique toute la structure : les 3 ensembles de code (plateforme `openamr-platform-sw` / instance
 `openamr` / firmware `linorobot2_hardware`), les 8 packages, les 18 launch + graphe d'inclusion, la
 règle du transmetteur de but, le flux de données (TF/topics sim vs réel/firmware/docking), et un

@@ -7,7 +7,7 @@ metadata:
   originSessionId: 6da325ad-d900-4dba-9896-6d398a31000d
 ---
 
-Full write-up: `docs/AUDIT-2026-07-02-vision-latency-and-compute.md`. Related:
+Full write-up: `docs/history/2026-07-02-audit-vision-latency-and-compute.md`. Related:
 [[amr-docking-bundle-setup]], [[amr-min-velocity-floors]], [[amr-apriltag-on-demand-gate]].
 
 ## The finding (chased all the servo symptoms back to this)

@@ -19,7 +19,7 @@ pas le code (cf [[amr-battery-voltage-check]], signature « nav OK mais rotation
 - **Gate = brut** (4 Hz, TF correct). Autofocus continu OK. Gyro recalibré.
 - **CHANTIER RESTANT = débit du gate** ([[amr-docking-gate-4hz-bottleneck]]) : le scan est fragile s'il
   doit tourner pour chercher. Piste : gate C++ intra-process OU scan tolérant (tag centre seul).
-- Détail complet : `docs/2026-07-07-session-docking-corrector-rewrite.md`.
+- Détail complet : `docs/history/2026-07-07-docking-corrector-rewrite.md`.
 
 ---
 
@@ -30,7 +30,7 @@ pas le code (cf [[amr-battery-voltage-check]], signature « nav OK mais rotation
 - **Dérive gyro réglée** ([[amr-imu-gyro-bias-boot]]).
 - **Cooler** : Pi à 47 °C, plus de throttling.
 - **UI opérateur MARCHE** : waypoints + blocs (React+rosbridge dockerisée, Cyclone/domain 0) [[amr-ui-operator]].
-- Doc du jour avec TOUTES les commandes : `docs/2026-07-06-session-robot-nav-gyro-ui.md`.
+- Doc du jour avec TOUTES les commandes : `docs/history/2026-07-06-nav-gyro-ui.md`.
 
 ## ⏳ Priorité 1 : committer le fix nav (BESOIN DU PI ALLUMÉ)
 Le fix accel de `nav2_params.yaml` est **sur le SSD du Pi** (src+build, persiste) mais **PAS committé** en git.
@@ -43,7 +43,7 @@ max_accel [1.0,0,3.0] / max_decel [-2.5,0,-3.0]`, garder `max_vel_x 0.20 / max_v
   du Pi, démêler quelle branche doit porter le vrai tuning réel, committer au bon endroit. NE PAS committer la sim.
 
 ## ⏳ Priorité 2 : les PR du chantier doc (préparées, pas poussées)
-`docs/PR-PLAN-2026-07-06.md` (8 PR) + `docs/RESUME-doc-chantier-2026-07-06.md`. Branches déjà committées :
+`docs/plans/PR-PLAN-2026-07-06.md` (8 PR) + `docs/plans/RESUME-doc-chantier-2026-07-06.md`. Branches déjà committées :
 FW `feature/teensy-4-0-linorobot2-overlay`, HW `feature/hardware-audit`, SW docs `feature/real-robot-docs`,
 + 6 branches SW code. **Reste** : pousser sur le fork `origin` (l'utilisateur ouvre les PR, pas d'accès upstream) ;
 neutraliser le commentaire "roue" dans nav2_params ; indexer les docs SW (navigation/safety/real_robot) dans le README ;
@@ -58,5 +58,5 @@ base propre pour la PR docs (cherry-pick sur upstream/main) ; nettoyer le worktr
   calib encodeur** (`align_enc_cal.py --arm 250`, roues en l'air).
 - Lancer depuis **`openamr-platform-sw`** (config rapide), PAS `openamr-integration` (config lente).
 - Params DWB (accel/vitesse) **PAS réglables à chaud** → éditer le YAML + relancer.
-- Toutes les commandes : `docs/2026-07-06-session-robot-nav-gyro-ui.md`, [[amr-pi-ros-commands]], [[amr-nav2-bringup]].
+- Toutes les commandes : `docs/history/2026-07-06-nav-gyro-ui.md`, [[amr-pi-ros-commands]], [[amr-nav2-bringup]].
 - Commits sans mention Claude [[amr-commit-no-claude]] ; commandes complètes copiables [[amr-commands-always-complete]].

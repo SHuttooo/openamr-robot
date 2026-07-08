@@ -41,5 +41,5 @@ Le `web_video_server` du **conteneur Docker de l'UI** s'appelle aussi `"camera"`
 (ex. `ros2 param get /camera AfMode`) tombe **au hasard** sur le vrai driver OU le web_video_server →
 réponses incohérentes. **Arrêter l'UI Docker pendant les tests docking** (`docker compose stop`).
 
-Cf `docs/2026-07-07-session-docking-corrector-rewrite.md`, [[amr-apriltag-on-demand-gate]],
+Cf `docs/history/2026-07-07-docking-corrector-rewrite.md`, [[amr-apriltag-on-demand-gate]],
 [[amr-vision-latency-cpu]], [[amr-battery-voltage-check]] (le scan qui "cale" peut aussi = batterie).

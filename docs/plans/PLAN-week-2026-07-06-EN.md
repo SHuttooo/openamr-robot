@@ -6,7 +6,7 @@ documentation day.
 
 ## Starting state
 - ✅ **Vision/CPU optimized** — composed camera+apriltag pipeline (intra-process), detector 15 Hz,
-  Pi ~45 % CPU; docking has succeeded several times (`DAY-2026-07-03`).
+  Pi ~45 % CPU; docking has succeeded several times (`history/2026-07-03-docking-rework-and-cpu.md`).
 - ✅ **Robot-frame docking** (dock normal relative to the tag, not the wobbly map): deployed;
   to test/tune + resolve a constant +4.2° offset.
 - ✅ **Pi recovered** — new HW + old SSD → reach it at **`botshare.local`** (DHCP IP now

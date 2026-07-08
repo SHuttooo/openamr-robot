@@ -33,4 +33,4 @@ Dans `nav2_params.yaml` (FollowPath + velocity_smoother) :
 - Plancher moteur mesuré : linéaire ~0.04, angulaire ~0.15 ([[amr-min-velocity-floors]]).
 
 Le vrai fix propre serait un plancher de vitesse sur `cmd_vel` (sigma-delta comme le docking), mais
-monter l'accél suffit. Cf `docs/2026-07-06-session-robot-nav-gyro-ui.md`.
+monter l'accél suffit. Cf `docs/history/2026-07-06-nav-gyro-ui.md`.

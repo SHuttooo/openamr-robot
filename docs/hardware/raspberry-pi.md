@@ -20,7 +20,7 @@ sensor drivers (LiDAR, camera), odometry, and later the navigation (Nav2/SLAM).
 
 ## Communication
 - **To the Teensy**: USB → `/dev/ttyACM0` (stable: `/dev/serial/by-id/usb-Teensyduino_USB_Serial_16778200-if00`).
-  The Pi hosts the **micro-ROS agent** that exposes the Teensy's topics. See [01-communication.md](../01-communication.md).
+  The Pi hosts the **micro-ROS agent** that exposes the Teensy's topics. See [01-communication.md](../reference/01-communication.md).
 - **To the LiDAR**: USB → `/dev/ttyUSB0` (CP2102 UART bridge).
 - **To the camera**: **CSI** (ribbon cable), not USB.
 - **ROS internal**: DDS = **CycloneDDS** (rmw_cyclonedds_cpp, adopted 2026-06-18 for Nav2/docking).

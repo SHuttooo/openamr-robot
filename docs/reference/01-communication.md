@@ -20,7 +20,7 @@ This file describes **precisely** how each element talks to the others: the **ph
 | ROS internal (on the Pi) | localhost | **DDS** (CycloneDDS, since 2026-06-18) | — | RMW |
 
 > ⚠️ **Common ground is mandatory**: the drivers' `COM` must be tied to the **Teensy GND**, otherwise
-> the PWM/direction signals and the encoders pick up noise. (see [history/diagnostics.md](history/diagnostics.md))
+> the PWM/direction signals and the encoders pick up noise. (see [history/diagnostics.md](../history/diagnostics.md))
 
 ---
 
@@ -66,19 +66,19 @@ Safety: if no `/cmd_vel` is received for **200 ms**, the firmware zeroes the mot
 ### Teensy ↔ IMU (I²C)
 - **I²C** bus: `SDA = pin 18`, `SCL = pin 19` (Teensy 4.0 default Wire).
 - Address **0x68** (AD0 to ground). `WHO_AM_I` (register 0x75) = **0x70** → this is an **MPU6500**.
-- The firmware reads accelerometer + gyroscope (no magnetometer). See [hardware/imu.md](hardware/imu.md).
+- The firmware reads accelerometer + gyroscope (no magnetometer). See [hardware/imu.md](../hardware/imu.md).
 
 ### Teensy ↔ encoders (quadrature)
 - Digital **A/B** quadrature signals, read via interrupts.
 - Left (MOTOR1): `A = pin 14, B = pin 15`. Right (MOTOR2): `A = pin 11, B = pin 12`.
-- 1024 counts/rev × quadrature decoding. See [hardware/encoders.md](hardware/encoders.md).
+- 1024 counts/rev × quadrature decoding. See [hardware/encoders.md](../hardware/encoders.md).
 
 ### Teensy ↔ motor drivers (PWM + direction)
 Per motor, 3 logic wires:
 - `PWM` (speed, PWM signal); `IN_A` (= FWD/forward); `IN_B` (= REV/reverse).
 - Left: `PWM=pin 1, IN_A=pin 20, IN_B=pin 21`. Right: `PWM=pin 5, IN_A=pin 6, IN_B=pin 8`.
 - On the driver side, the speed input is `VAR/AI2` (PWM 3–10 kHz or 0–5 V), the direction is `FWD/DI1`
-  & `REV/DI2`, and `COM` = common ground (tie to Teensy GND). See [hardware/motors-drivers.md](hardware/motors-drivers.md).
+  & `REV/DI2`, and `COM` = common ground (tie to Teensy GND). See [hardware/motors-drivers.md](../hardware/motors-drivers.md).
 
 ---
 
@@ -96,7 +96,7 @@ Per motor, 3 logic wires:
 
 > ⚠️ **Camera bandwidth**: `/camera/image_raw` is ~2.76 MB/frame (1280×720). Over WiFi, always use the
 > **`compressed`** topic; never subscribe to raw remotely (it lags the whole network). See
-> [hardware/camera.md](hardware/camera.md).
+> [hardware/camera.md](../hardware/camera.md).
 
 ### Transform tree (TF)
 ```
@@ -114,7 +114,7 @@ map ──(slam_toolbox)──► odom ──(ekf_filter_node)──► base_lin
 - ROS 2 uses an **RMW** (DDS layer). **CycloneDDS** (`rmw_cyclonedds_cpp`, since 2026-06-18), **`ROS_DOMAIN_ID = 0`** (Pi has neither set).
 - To view the Pi's topics from the **Ubuntu dev PC** (native RViz/rqt): same **domain 0**, same **CycloneDDS**,
   and **same LAN subnet** (DDS discovery is multicast → does not cross a router). On Ubuntu run
-  `export ROS_DOMAIN_ID=0` (this desktop defaults to 42). See [software/visualization.md](software/visualization.md).
+  `export ROS_DOMAIN_ID=0` (this desktop defaults to 42). See [software/visualization.md](../software/visualization.md).
 - ✅ Adopted **CycloneDDS** (2026-06-18, required by the docking/Nav2 actions). **All** nodes (Pi bring-up,
   Nav2, dev PC) must use Cyclone + the same domain. (OpenAMR's guide also uses domain 30; we stay on 0.)
 

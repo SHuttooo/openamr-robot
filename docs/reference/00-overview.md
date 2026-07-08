@@ -84,20 +84,20 @@ The robot has **two computers** that share the work:
 
 | Component | Model | Sheet |
 |---|---|---|
-| Computer | Raspberry Pi 5 | [hardware/raspberry-pi.md](hardware/raspberry-pi.md) |
-| Microcontroller | Teensy 4.0 | [hardware/teensy.md](hardware/teensy.md) |
-| Motors | BLDC ZD 60_200W ×2 | [hardware/motors-drivers.md](hardware/motors-drivers.md) |
-| Motor drivers | ZBLD C20-120L2R ×2 | [hardware/motors-drivers.md](hardware/motors-drivers.md) |
-| Encoders | AS5040 magnetic, 1024 CPR | [hardware/encoders.md](hardware/encoders.md) |
-| IMU | **MPU6500** (thought to be MPU6050) | [hardware/imu.md](hardware/imu.md) |
-| LiDAR | RPLidar (on the Pi's USB) | [hardware/lidar.md](hardware/lidar.md) |
-| Camera | Pi Camera Module 3 **NoIR** (IMX708) — **working** via RPi libcamera fork | [hardware/camera.md](hardware/camera.md) |
-| Power | 24 V (AC/DC converter) | [hardware/power.md](hardware/power.md) |
+| Computer | Raspberry Pi 5 | [hardware/raspberry-pi.md](../hardware/raspberry-pi.md) |
+| Microcontroller | Teensy 4.0 | [hardware/teensy.md](../hardware/teensy.md) |
+| Motors | BLDC ZD 60_200W ×2 | [hardware/motors-drivers.md](../hardware/motors-drivers.md) |
+| Motor drivers | ZBLD C20-120L2R ×2 | [hardware/motors-drivers.md](../hardware/motors-drivers.md) |
+| Encoders | AS5040 magnetic, 1024 CPR | [hardware/encoders.md](../hardware/encoders.md) |
+| IMU | **MPU6500** (thought to be MPU6050) | [hardware/imu.md](../hardware/imu.md) |
+| LiDAR | RPLidar (on the Pi's USB) | [hardware/lidar.md](../hardware/lidar.md) |
+| Camera | Pi Camera Module 3 **NoIR** (IMX708) — **working** via RPi libcamera fork | [hardware/camera.md](../hardware/camera.md) |
+| Power | 24 V (AC/DC converter) | [hardware/power.md](../hardware/power.md) |
 
 ## Software stack
 
 - **Pi**: Ubuntu Server 24.04 + **ROS 2 Jazzy**. micro-ROS agent workspace in `~/linorobot2_ws`.
 - **Teensy firmware**: `linorobot2_hardware` (PlatformIO, env `teensy40`) + our config + debug additions.
-- **Navigation (target)**: `openamr-platform-sw` (Nav2, SLAM, docking) — see [software/navigation.md](software/navigation.md).
+- **Navigation (target)**: `openamr-platform-sw` (Nav2, SLAM, docking) — see [software/navigation.md](../software/navigation.md).
 
 To understand how everything talks → **[01-communication.md](01-communication.md)**.

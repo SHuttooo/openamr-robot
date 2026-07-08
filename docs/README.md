@@ -5,8 +5,8 @@
 
 ## Where to start
 
-1. **[00-overview.md](00-overview.md)** — what the robot is, the overall architecture, the layer diagram.
-2. **[01-communication.md](01-communication.md)** — **precise map of ALL communication** (physical buses, protocols, baud rates, ROS topics + types + frames). Read this early.
+1. **[00-overview.md](reference/00-overview.md)** — what the robot is, the overall architecture, the layer diagram.
+2. **[01-communication.md](reference/01-communication.md)** — **precise map of ALL communication** (physical buses, protocols, baud rates, ROS topics + types + frames). Read this early.
 3. Then the per-topic sheets below, depending on what you need to work on.
 
 ## File tree
@@ -14,36 +14,32 @@
 ```
 docs/
   README.md              <- this file (index)
-  00-overview.md         <- overview + architecture
-  01-communication.md    <- all communications (buses, protocols, topics)
+  reference/             <- timeless reference — START HERE
+    00-overview.md         <- overview + architecture
+    01-communication.md    <- all communications (buses, protocols, topics)
+    ARCHITECTURE.md        <- system architecture
+    PRESENTATION-BRIEF.md
+    RUNBOOK-real-robot.md
+  history/               <- CHRONOLOGICAL record: what was done, when (see history/README.md)
+    2026-06-26-fix-log.md ... 2026-07-08-release-prep.md   <- daily sessions + dated audits
+    diagnostics.md, encoder-calibration.md, rapport-stage-technique.md  <- cross-cutting records
+  plans/                 <- forward-looking plans (10-day, weekly, PR plan, fix plan, doc-chantier)
+  reports/               <- rendered HTML deliverables (vision-latency report, integration review)
   hardware/              <- one sheet per physical component
-    raspberry-pi.md
-    teensy.md
-    motors-drivers.md
-    motor-driver-fault-codes.md  <- ZBLD.C20 LED blink codes (red LED = fault, e.g. code 10 = under-voltage)
-    encoders.md
-    imu.md
-    lidar.md
-    camera.md
-    power.md
-    wiring-pinout.md
+    raspberry-pi.md  teensy.md  motors-drivers.md  motor-driver-fault-codes.md
+    encoders.md  imu.md  lidar.md  camera.md  power.md  wiring-pinout.md
   firmware/              <- code running on the Teensy
-    firmware.md
-    control-loop-pid.md
-    debug-telemetry.md
+    firmware.md  control-loop-pid.md  debug-telemetry.md
   software/              <- Raspberry Pi side (ROS 2)
-    ros-architecture.md
-    bringup.md
-    navigation.md
-    visualization.md     <- RViz/rqt from the Ubuntu dev PC (domain, RMW, compressed camera)
-  procedures/            <- how-to (step by step)
-    running-the-robot.md       <- base robot quick-start (bring-up, teleop, SLAM, firmware flash)
-    real-robot-runbook.md      <- full Nav2 navigation stack + troubleshooting (current reference)
-    safety.md
-  history/               <- decisions, diagnostics, reports (the "why")
-    diagnostics.md
-    rapport-stage-technique.md <- technical internship report (FR, historical)
+    ros-architecture.md  bringup.md  navigation.md  visualization.md
+  procedures/            <- how-to, step by step
+    running-the-robot.md  real-robot-runbook.md  safety.md
+  data/                  <- raw logs / calibration data
 ```
+
+> **Navigating by intent:** timeless "how it works" → [`reference/`](reference/) + the topical folders
+> (`hardware/`, `firmware/`, `software/`). "What was done and when" → [`history/`](history/README.md).
+> "What to do next" → [`plans/`](plans/). Rendered reports to share → [`reports/`](reports/).
 
 > **Two procedure docs, by purpose:** [`running-the-robot.md`](procedures/running-the-robot.md) is the
 > quick-start for the **base robot** (bring-up, teleop, SLAM, firmware). [`real-robot-runbook.md`](procedures/real-robot-runbook.md)
@@ -85,4 +81,4 @@ docs/
   power-cycle (see running-the-robot §4b).
 
 ---
-*Last updated: 2026-06-29.*
+*Last updated: 2026-07-08 (docs reorganized: reference/ · history/ · plans/ · reports/).*

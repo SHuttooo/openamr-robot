@@ -8,9 +8,9 @@ metadata:
 ---
 
 Researched after the AprilTag docking hit the vision-latency wall ([[amr-vision-latency-cpu]]).
-Deliverables to share with Alex & Raj: `docs/vision-latency-report-2026-07-02.html` (the
+Deliverables to share with Alex & Raj: `docs/reports/vision-latency-report-2026-07-02.html` (the
 day's problem/audit, self-contained) + a 2D-LiDAR docking A/B comparison HTML (V-notch
-diagrams). Full analysis: `docs/AUDIT-2026-07-02-vision-latency-and-compute.md` §4–5.
+diagrams). Full analysis: `docs/history/2026-07-02-audit-vision-latency-and-compute.md` §4–5.
 
 ## Why look at LiDAR docking
 Camera+AprilTag makes the sensor carry everything (precision AND freshness) → it broke on a
