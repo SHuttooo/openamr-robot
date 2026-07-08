@@ -22,6 +22,10 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - [x] `electrical/sensors/encoders.md` — **AS5040 encoder wiring** ✅ FAIT (diagrams/encoder-wiring.svg, vérifié)
 - [x] `README.md` — **System block diagram** ✅ FAIT (diagrams/system-block.svg, vérifié). **HW = 8/8 diagrammes, repo 100% propre**
 
+- [ ] `electrical/sensors/imu.md` — **MPU6500 IMU I²C wiring** (SDA18/SCL19, 3.3V, 0x68) — placeholder posé
+- [ ] `electrical/sensors/lidar.md` — **RPLIDAR A1 connection** (CP2102 USB→Pi) — placeholder posé
+- [ ] `electrical/sensors/camera.md` — **Camera Module 3 CSI connection** — placeholder posé
+
 ## FW — `openamr-platform-fw` (branche `feature/teensy-4-0-linorobot2-overlay`)
 - [ ] `docs/architecture/control-loop.md` — **Motor control loop** (PID + feedforward + anti-windup, 50 Hz)
 - [ ] `docs/bringup/micro-ros-bringup.md` — **micro-ROS node topology** (Teensy client ↔ agent Pi ↔ ROS graph)
