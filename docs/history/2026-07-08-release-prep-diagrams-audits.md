@@ -152,6 +152,33 @@ session ») **volontairement gardés** (choix : voix ingénieur honnête). Mémo
 
 ---
 
+## 8bis. Suite de nuit (après minuit, toujours le 08)
+
+- **Diagrammes générés + placés (8 HW)** : harness, pinout Teensy (v2), connexions driver ZBLD (v2, ordre
+  des 12 bornes corrigé), DIP, distribution puissance, chaîne moteur, câblage encodeurs, block système.
+  Trois **pièges réglés** : ordre des bornes driver (prompt réécrit), prompt qui restait visible sur GitHub
+  (regex de placement non-greedy → format placeholder **robuste** : stub visible + prompt en commentaire HTML),
+  et **fond blanc absent** (le rect blanc était piégé dans un `<mask>` sous `<defs>` → pas peint ; fix = vrai
+  rect blanc 1er enfant de `<svg>` avant `<defs>`, + dimensions explicites pour GitHub). Style uniformisé
+  (palette 24V=rouge/5V=orange/3.3V=bleu/data=gris). **Placeholders capteurs** ajoutés (imu, lidar, camera).
+- **Restructuration du repo notes `docs/`** : tout rangé en `reference/ history/ plans/ reports/` (git mv,
+  rien supprimé), `history/` = journal chronologique complet (projet démarré **2026-06-17**) + `history/README.md`.
+  Tous les liens recalculés (0 cassé), refs mémoire repointées.
+- **AUTHORS** : Matthieu crédité sur FW/HW/SW ; **AUTHORS + LICENSE FW retravaillés** pour la liaison
+  linorobot2 (upstream = Juan Miguel Jimeno crédité comme auteur, dual-licence doc=MIT / firmware=Apache-2.0).
+- **linorobot retiré du HW et du SW** — le HW/SW sont génériques ; linorobot2 n'apparaît **que dans le FW**.
+- **Structure HW** : dossier `docs/` redondant supprimé, `safety/` remonté top-level, 6 `.gitkeep` inutiles retirés.
+
+---
+
+## 8ter. À FAIRE DEMAIN (reprise, 08-07 plus tard) — tout est dans [[amr-release-audit]]
+1. Générer les **10 diagrammes restants** (3 capteurs HW + 4 FW + 3 SW) — données câblage FIABLES.
+2. **Vendorer les scripts enc-cal** (`align_enc_cal.py` & co.) dans `openamr-platform-fw` (release autonome).
+3. **Ménage code** du repo notes (candidats identifiés ; demander avant de supprimer).
+4. **Nettoyer les branches du fork SW** (garder 3-5 PR + main ; `matthieu/*` = demander avant).
+
+---
+
 ## 8. Ce qui reste (pour la suite)
 
 1. **Ouvrir les 5 PR** (3 SW + FW + HW) vers `openAMRobot:main` — Matthieu (pas d'accès upstream/`gh`).
