@@ -56,6 +56,17 @@ Points relevés, **volontairement NON corrigés (choix utilisateur : garder la v
    Pi → ne retirer QU'APRÈS avoir migré le workflow de déploiement vers les repos platform. **Demander avant
    de supprimer** (consigne utilisateur, repo précieux).
 
+## 📐 À FAIRE (reprise 08-07) — générer les 10 diagrammes restants
+Checklist complète : [[amr-diagrams-todo]] (ouverte dans VSCode). Placeholders posés (stub visible +
+prompt caché en commentaire HTML + bloc STYLE). Reste : **HW capteurs** (imu, lidar, camera) + **FW** (4:
+control-loop, micro-ros-bringup, debug-telemetry, encoder-calibration) + **SW** (3: networking-DDS,
+collision-monitor, vision-pipeline). Workflow : ouvrir le doc → copier le prompt du commentaire → générer
+→ remplacer le bloc placeholder par `![...](diagrams/<slug>.svg)` → vérifier fond blanc + dims + 0 prompt.
+**Données câblage = FIABLES** (pins = firmware `lino_base_config.h`, audit physique VERIFIED 2026-06-19,
+recroisé) → générer sans re-vérifier. SEUL point à confirmer sur la carte si fidélité parfaite voulue :
+l'ordre exact des 12 bornes driver + label RS485 inutilisé (A+/B- vs B+ lu). Diagrammes FW/SW = logiques
+(dérivés du code, rien à mesurer).
+
 ## Autres chantiers en cours (rappels)
 - [[amr-diagrams-todo]] : 15 diagrammes à générer (placeholders posés, prompts inclus).
 - Docking = priorité de Matthieu pour la démo (Vendredi). Nav + UI = OK/contents.
