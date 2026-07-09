@@ -23,6 +23,8 @@ in chronological order. Forward-looking plans are in [`../plans/`](../plans/); t
 | 2026-07-06 | [day — UI integration, network, thermal](2026-07-06-ui-integration-network-thermal.md) | UI voice-demo integration + network & thermal blockers. |
 | 2026-07-07 | [session — docking corrector rewrite](2026-07-07-docking-corrector-rewrite.md) | NEAR corrector rewrite, the gate saga, and the battery lesson. |
 | 2026-07-08 | [session — release prep](2026-07-08-release-prep-diagrams-audits.md) | PR consolidation, licences, diagrams, cross-repo audits. |
+| 2026-07-08 | [session (soir) — test terrain + vitesses Nav2](2026-07-08-nav-speed-tuning-field-test.md) | Faux coupable LIDAR fantôme (pas le tuning), plancher basse vitesse, et la leçon DWB : les vitesses max ne se changent pas à chaud → relance. |
+| 2026-07-09 | [session — docking : ligne toujours en odom](2026-07-09-docking-unified-odom-line.md) | Fin de l'oscillation d'approche : la ligne du dock vit désormais en `odom` (refine lag-correct), plus de bascule base_link↔odom. + undock robuste, arrêt lidar, dock_pose hors carte, coup de rein pour la marche. |
 
 ## Cross-cutting records (not a single day)
 
