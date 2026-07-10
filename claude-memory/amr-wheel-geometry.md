@@ -11,7 +11,9 @@ metadata:
 
 ## Valeurs correctes = le FIRMWARE (`lino_base_config.h`)
 - **`WHEEL_DIAMETER 0.2`** → rayon 0.10 m → **roue Ø 20 cm**. ✅ mesuré.
-- **`LR_WHEELS_DISTANCE 0.46`** → **voie 46 cm** (distance entre les 2 roues). ✅ mesuré.
+- **`LR_WHEELS_DISTANCE 0.46`** → **voie 46 cm** (distance entre les 2 roues). ✅ **RE-MESURÉE au mètre
+  ruban centre-à-centre le 08-07 = 0.46 m confirmé** → la question des « 5 cm » (0.46 vs CAD 0.4075) est
+  CLOSE, le 0.4075 est définitivement rejeté (artefact CAD). BOM mis à jour (« confirmed by tape-measure »).
 
 ## Ce qui est FAUX (ne pas s'y fier)
 Trois autres sources portent des valeurs erronées, toutes cohérentes entre elles mais fausses :

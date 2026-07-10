@@ -19,6 +19,14 @@ cohérents ; tensions 3.3V (AS5040/IMU) ; copyright OpenAMRobot 2026 ; aucun sec
 - HW : 6 refs cross-repo cassées (`firmware/xxx.md (see openamr-platform-fw…)`) → refs propres (commit `8c9e034`).
 - HW : serial Teensy `16778200` labellisé "reference unit".
 
+## ✅ Commit linorobot2 ÉPINGLÉ (2026-07-08, retrouvé par diff — TODO NOTICE.md fermé)
+Base FW identifiée par comparaison des 3 fichiers overlay à TOUT l'historique de `linorobot/linorobot2_hardware` :
+**branche `jazzy`, commit `aaf9d59cd18c0cd1905be6fdae9ea5c99961a766` (2026-04-30)** = HEAD au démarrage projet
+(juin 2026) ; fichiers source dernière modif upstream à `36ffb76d` (2026-04-10, "Add support for ESP32 Wifi").
+Preuve : l'écart résiduel = exactement les valeurs par défaut linorobot2 que l'utilisateur a remplacées
+(K_P 0.6→2.0, WHEEL 0.152→0.2, LR_WHEELS 0.271→0.46, COUNTS 144000→1024, MOTOR1_PWM swap 21→1 suivant le
+conseil inline upstream). NOTICE.md + overlay README **mis à jour en local** (pas encore committés).
+
 ## 🔴 DÉCISIONS OUVERTES (à reprendre)
 1. **Topic IMU — le seul vrai bug.** Firmware git publie `/imu/data_raw`+`/imu/mag` mais l'EKF lit
    `/imu/data` (rien ne le produit). Déployé ≠ git. **Trancher sur le robot** : `ros2 topic list | grep imu`.
@@ -56,11 +64,12 @@ Points relevés, **volontairement NON corrigés (choix utilisateur : garder la v
    Pi → ne retirer QU'APRÈS avoir migré le workflow de déploiement vers les repos platform. **Demander avant
    de supprimer** (consigne utilisateur, repo précieux).
 
-## 📐 À FAIRE (reprise 08-07) — générer les 10 diagrammes restants
-Checklist complète : [[amr-diagrams-todo]] (ouverte dans VSCode). Placeholders posés (stub visible +
-prompt caché en commentaire HTML + bloc STYLE). Reste : **HW capteurs** (imu, lidar, camera) + **FW** (4:
-control-loop, micro-ros-bringup, debug-telemetry, encoder-calibration) + **SW** (3: networking-DDS,
-collision-monitor, vision-pipeline). Workflow : ouvrir le doc → copier le prompt du commentaire → générer
+## 📐 Diagrammes — HW FINI (11/11), reste 7 (FW+SW)
+Checklist complète : [[amr-diagrams-todo]]. **HW = 11/11 FAIT** (câblage + capteurs imu/lidar/camera,
+générés + vérifiés AVEC l'utilisateur 08-07, committés+poussés sur `feature/hardware-audit`, PR HW ouverte).
+Reste **7** : **FW** (4: control-loop, micro-ros-bringup, debug-telemetry, encoder-calibration — prompts
+déjà rédigés dans les docs, exacts, prêts à générer) + **SW** (3: networking-DDS, collision-monitor,
+vision-pipeline). Workflow : ouvrir le doc → copier le prompt du commentaire → générer
 → remplacer le bloc placeholder par `![...](diagrams/<slug>.svg)` → vérifier fond blanc + dims + 0 prompt.
 **Données câblage = FIABLES** (pins = firmware `lino_base_config.h`, audit physique VERIFIED 2026-06-19,
 recroisé) → générer sans re-vérifier. SEUL point à confirmer sur la carte si fidélité parfaite voulue :

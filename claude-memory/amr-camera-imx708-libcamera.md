@@ -26,6 +26,15 @@ Problème connu Pi5 + Ubuntu 24.04 + ROS 2 Jazzy + Cam Module 3.
 `~/camera_ws` (overlay). Caméra fonctionnelle, vérifiée par snapshot. Topics : `/camera/image_raw`
 (+ /compressed) + `/camera/camera_info`. Lancer : sourcer `~/camera_ws/install/setup.bash` puis camera_node.
 
+⚠️ **SIGNATURE DU BUG (revu 2026-07-09) — « no cameras available » au bring-up alors que le noyau voit
+la caméra.** Symptômes : docking abort « tags not detected », `/camera/image_raw` **0 publisher**,
+apriltag vivant mais muet, log `Failed to load node 'camera' … no cameras available`. **Cause = le
+bring-up a été lancé SANS `source ~/camera_ws/install/setup.bash`** (le `LD_LIBRARY_PATH` du process
+ne contient pas `camera_ws` → camera_ros se lie à la libcamera SYSTÈME qui ne gère pas l'IMX708). Ce
+n'est PAS la nappe (vérifier `sudo dmesg | grep imx708` → si `Using sensor imx708_noir … /dev/video0`
+= HW OK) ni un zombie. **Fix = relancer avec le bloc complet incluant la ligne `camera_ws`.** Vérif :
+`ros2 topic info /camera/image_raw | grep 'Publisher count'` doit être 1. Voir [[amr-nav2-bringup]].
+
 **CALIBRATION ✅ FAITE 2026-06-19** : damier 9×12 carrés (8×11 coins), 30 mm, 87 vues. Résultat 1280×720 :
 fx≈1415,7 fy≈1415,1 cx≈629,3 cy≈366,4 ; distorsion plumb_bob [0,0038, 0,217, ~0, ~0, 0]. Sauvée dans
 **repo scripts/camera_info.yaml + Pi ~/camera_info.yaml** ; bring-up la charge via `camera_info_url`.

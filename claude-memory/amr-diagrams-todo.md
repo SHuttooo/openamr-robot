@@ -1,6 +1,6 @@
 ---
 name: amr-diagrams-todo
-description: "Checklist des 15 diagrammes à générer : placeholders déjà posés dans les docs FW/HW/SW (chacun avec son prompt Claude intégré). Liste ici pour ne rien oublier avant la release."
+description: "Checklist des diagrammes release — TERMINÉE. HW = 11/11, FW = 4/4, SW = 3/3, tous générés/vérifiés/committés/poussés le 08-07. Plus aucun diagramme en attente."
 metadata:
   node_type: memory
   type: project
@@ -22,20 +22,20 @@ et à remplacer le bloc placeholder par l'image. Chercher les blocs par `📐 Di
 - [x] `electrical/sensors/encoders.md` — **AS5040 encoder wiring** ✅ FAIT (diagrams/encoder-wiring.svg, vérifié)
 - [x] `README.md` — **System block diagram** ✅ FAIT (diagrams/system-block.svg, vérifié). **HW = 8/8 diagrammes, repo 100% propre**
 
-- [ ] `electrical/sensors/imu.md` — **MPU6500 IMU I²C wiring** (SDA18/SCL19, 3.3V, 0x68) — placeholder posé
-- [ ] `electrical/sensors/lidar.md` — **RPLIDAR A1 connection** (CP2102 USB→Pi) — placeholder posé
-- [ ] `electrical/sensors/camera.md` — **Camera Module 3 CSI connection** — placeholder posé
+- [x] `electrical/sensors/imu.md` — **IMU I²C wiring** ✅ FAIT (diagrams/imu-wiring.svg). Vérifié AVEC l'utilisateur : carte **marquée MPU-6050 mais silicium MPU6500** (WHO_AM_I 0x70, driver MPU9250) ; **3.3 V depuis le 3V3 Teensy** ; **AD0 non connecté** (addr 0x68 = défaut carte) ; XCL/XDA/INT/AD0 = n/c ; **pull-ups on-board** (aucune externe, valeur retirée)
+- [x] `electrical/sensors/lidar.md` — **RPLIDAR A1 connection** ✅ FAIT (diagrams/lidar-connection.svg). Adaptateur physique = **Slamtec STC-A0317-R03** (pont CP2102, 10c4:ea60)
+- [x] `electrical/sensors/camera.md` — **Camera Module 3 CSI connection** ✅ FAIT (diagrams/camera-connection.svg). Caméra **Pi-4 + adaptateur FPC 15→22 broches** pour Pi 5 ; connecteur **cam1** (doc corrigée cam0→cam1) ; « 4-lane » retiré. **HW = 11/11 diagrammes, 0 placeholder capteur restant**
 
 ## FW — `openamr-platform-fw` (branche `feature/teensy-4-0-linorobot2-overlay`)
-- [ ] `docs/architecture/control-loop.md` — **Motor control loop** (PID + feedforward + anti-windup, 50 Hz)
-- [ ] `docs/bringup/micro-ros-bringup.md` — **micro-ROS node topology** (Teensy client ↔ agent Pi ↔ ROS graph)
-- [ ] `docs/architecture/debug-telemetry.md` — **Debug/telemetry topic map** (commandes vs télémétrie)
-- [ ] `docs/architecture/encoder-calibration.md` — **Encoder ripple calibration workflow** (calib par boot)
+- [x] `docs/architecture/control-loop.md` — **Motor control loop** ✅ FAIT (diagrams/motor-control-loop-per-wheel.svg, vérifié, committé a84c09e)
+- [x] `docs/bringup/micro-ros-bringup.md` — **micro-ROS node topology** ✅ FAIT (diagrams/micro-ros-node-topology.svg, vérifié)
+- [x] `docs/architecture/debug-telemetry.md` — **Debug/telemetry topic map** ✅ FAIT (diagrams/debug-telemetry-topic-map.svg, vérifié)
+- [x] `docs/architecture/encoder-calibration.md` — **Encoder ripple calibration workflow** ✅ FAIT (diagrams/encoder-ripple-calibration-workflow.svg, vérifié, committé 21aa61c). **FW = 4/4 diagrammes, 0 placeholder restant**
 
 ## SW — `openamr-platform-sw` (branche `feature/real-robot-docs-pr`)
-- [ ] `docs/real_robot/02_networking_and_dds.md` — **Networking & DDS topology** (PC/Pi/Teensy + pièges FastDDS/domain)
-- [ ] `docs/safety/01_collision_monitor.md` — **Reactive-safety velocity chain** (controller→smoother→collision_monitor→/cmd_vel)
-- [ ] `docs/real_robot/03_vision_pipeline_and_cpu.md` — **Vision pipeline 3-process vs intra-process** (avant/après)
+- [x] `docs/real_robot/02_networking_and_dds.md` — **Networking & DDS topology** ✅ FAIT (diagrams/networking-dds-topology.svg, vérifié, committé e2a2dd1)
+- [x] `docs/safety/01_collision_monitor.md` — **Reactive-safety velocity chain** ✅ FAIT (diagrams/reactive-safety-velocity-chain.svg, vérifié)
+- [x] `docs/real_robot/03_vision_pipeline_and_cpu.md` — **Vision pipeline 3-process vs intra-process** ✅ FAIT (diagrams/vision-pipeline-3-process-vs-intra-process-composition.svg, vérifié). **SW = 3/3. TOUS LES DIAGRAMMES FAITS : HW 11/11 · FW 4/4 · SW 3/3**
 
 ## Format placeholder ROBUSTE (2026-07-08) — les problèmes qu'on a eus + la solution
 **Problèmes rencontrés (à ne plus refaire) :**
