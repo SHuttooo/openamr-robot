@@ -25,6 +25,7 @@ in chronological order. Forward-looking plans are in [`../plans/`](../plans/); t
 | 2026-07-08 | [session — release prep](2026-07-08-release-prep-diagrams-audits.md) | PR consolidation, licences, diagrams, cross-repo audits. |
 | 2026-07-08 | [session (soir) — test terrain + vitesses Nav2](2026-07-08-nav-speed-tuning-field-test.md) | Faux coupable LIDAR fantôme (pas le tuning), plancher basse vitesse, et la leçon DWB : les vitesses max ne se changent pas à chaud → relance. |
 | 2026-07-09 | [session — docking : ligne toujours en odom](2026-07-09-docking-unified-odom-line.md) | Fin de l'oscillation d'approche : la ligne du dock vit désormais en `odom` (refine lag-correct), plus de bascule base_link↔odom. + undock robuste, arrêt lidar, dock_pose hors carte, coup de rein pour la marche. |
+| 2026-07-10 | [session — docking final, CPU/caméra, audit doc, sim, prépa PR](2026-07-10-docking-final-cpu-docs-audit-sim.md) | Derniers réglages docking (collision_monitor pause, arrêt lidar 0.13, recherche non-figée, `log_splitter`) ; **le vrai bloqueur = mauvais profil** (gate Python → composé par défaut) + Pi5 saturé ; **audit multi-agents de 59 docs → 45 corrections** ; sim relancé (fragmentation branches, offload NVIDIA PRIME) ; 4 branches poussées + descriptions PR + texte Alex. |
 
 ## Cross-cutting records (not a single day)
 
